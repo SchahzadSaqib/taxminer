@@ -391,7 +391,7 @@ txm_ecosrc <- function(
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
       Data_to_filt <- Data_to_filt %>%
-        filter(!AccID %in% Negate_data_tokeep$AccID)
+        dplyr::filter(!AccID %in% Negate_data_tokeep$AccID)
     }
 
     ##### Site filtration #####
