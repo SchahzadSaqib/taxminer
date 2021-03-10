@@ -299,7 +299,7 @@ txm_ecosrc <- function(
     ##### Site bank #####
 
     if (!is.na(filter_site[1])) {
-      Site_word_bank <- purrr::map(filter_site, .f = Site_processing) %>%
+      Site_word_bank <- purrr::map(filter_site, .f = collapse_multi) %>%
         purrr::set_names(filter_site)
     }
 

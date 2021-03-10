@@ -11,7 +11,7 @@ Clean_list <- function(x) {
     unlist()
 }
 
-Site_processing <- function(x) {
+collapse_multi <- function(x) {
   if (stringr::str_detect(x, "\\+")) {
     site_split <- unlist(stringr::str_split(x, pattern = "\\+"))
     site_cmp <- Word_banks %>%
