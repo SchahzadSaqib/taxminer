@@ -18,14 +18,14 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of taxminer is to ...
+Taxonomic annotations - BLAST alignment and text-mining based filtration in R
 
 ## Installation
 
-You can install the released version of taxminer from [CRAN](https://CRAN.R-project.org) with:
+You can install the released version of taxminer from [Github](https://github.com/) with:
 
 ``` r
-install.packages("taxminer")
+devtools::install_github("taxminer")
 ```
 
 ## Example
@@ -43,10 +43,5 @@ taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina",
 ```{r cars}
 get_accIds <- readr::read_delim("demo/Fungi_noEnv.seq", delim = "\n", col_names = "AccIDs", col_types = readr::cols(AccIDs = readr::col_character()))
 get_accIds
-```
-
-
-```{r pressure, echo = FALSE}
-plot(pressure)
 ```
 
