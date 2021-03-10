@@ -1,0 +1,29 @@
+Package: taxminer
+Title: Taxonomic annotations - BLAST alignment and text-mining based filtration in R 
+Version: 1.0.0
+Author: Schahzad Saqib [aut, cre] (ORCID = https://orcid.org/0000-0002-0844-2124)
+Maintainer: Schahzad Saqib <schahzad.saqib@helsinki.fi>
+Description: Facilitates customized BLAST based taxonomic annotations and uses the rentrez package https://github.com/ropensci/rentrez to communicate with NCBI databases to extract information based on accession IDs. This information attaches ecosystem specificity to each annotation hit, which is used as a filtration criteria to obtain the most probablistic taxonomic annotations. 
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+Imports: 
+    dplyr,
+    purrr,
+    XML,
+    rentrez,
+    magrittr,
+    tidyr,
+    stringr,
+    rlang,
+    tidyselect,
+    utils,
+    progress,
+    readr,
+    rstudioapi,
+    dada2
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

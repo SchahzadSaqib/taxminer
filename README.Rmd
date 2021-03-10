@@ -1,0 +1,52 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# taxminer
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of taxminer is to ...
+
+## Installation
+
+You can install the released version of taxminer from [CRAN](https://CRAN.R-project.org) with:
+
+``` r
+install.packages("taxminer")
+```
+
+## Example
+
+
+```{r example}
+library(taxminer)
+## extracting accession numbers
+taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina",
+                    db2src = "nucleotide",
+                    out_name = "demo/Fungi_noEnv.seq")
+```
+
+
+```{r cars}
+get_accIds <- readr::read_delim("demo/Fungi_noEnv.seq", delim = "\n", col_names = "AccIDs", col_types = readr::cols(AccIDs = readr::col_character()))
+get_accIds
+```
+
+
+```{r pressure, echo = FALSE}
+plot(pressure)
+```
+
