@@ -288,9 +288,8 @@ txm_ecosrc <- function(
     ##### Host bank #####
 
     if (!is.na(filter_host[1])) {
-      Host_word_bank <- as.list(purrr::pluck(Word_banks, filter_host)) %>%
-        purrr::map_chr(.f = ~ paste("\\b", .x, "\\b", sep = "")) %>%
-        paste(collapse = "|")
+      Host_word_bank <- purrr::map(filter_host, .f = collapse_multi) %>%
+        purrr::set_names(filter_host)
     } else {
       Host_word_bank <- NA
     }
@@ -301,15 +300,16 @@ txm_ecosrc <- function(
     if (!is.na(filter_site[1])) {
       Site_word_bank <- purrr::map(filter_site, .f = collapse_multi) %>%
         purrr::set_names(filter_site)
+    } else {
+      Site_word_bank <- NA
     }
 
 
     ##### Negate bank #####
 
     if (!is.na(filter_negate[1])) {
-      Negate_word_bank <- as.list(purrr::pluck(Word_banks, filter_negate)) %>%
-        purrr::map_chr(.f = ~ paste("\\b", .x, "\\b", sep = "")) %>%
-        paste(collapse = "|")
+      Negate_word_bank <- purrr::map(filter_negate, .f = collapse_multi) %>%
+        purrr::set_names(filter_negate)
     } else {
       Negate_word_bank <- NA
     }
