@@ -321,35 +321,81 @@ txm_ecosrc <- function(
       dplyr::mutate_if(is.factor, as.character) %>%
       dplyr::ungroup() %>%
       tidyr::unite("pooled_data", c(.data$MeshHeadingList, .data$Article, .data$meta),
-                   na.rm = T)
+                   na.rm = T) %>%
+      dplyr::left_join(input_table, by = "AccID")
 
 
     ##### Host filtration #####
-    if (!is.na(Host_word_bank)) {
-      Data_to_filt <- Data_to_filt %>%
-        dplyr::mutate_if(is.list, as.character) %>%
-        dplyr::mutate(host = trimws(stringr::str_extract(pooled_data,
-                                                         pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
-        ))) %>%
-        dplyr::filter(stringr::str_detect(pooled_data, stringr::regex(Host_word_bank, ignore_case = T))) %>%
-        dplyr::filter(is.na(host) | stringr::str_detect(host, pattern = stringr::regex(Host_word_bank, ignore_case = T)))
-    }
+    if (!is.na(Host_word_bank[1])) {
 
+      Host_data_tokeep <- c()
+      i <- 1
+      while (i <= length(Host_word_bank)) {
+        print(paste("Searching through ", names(Host_word_bank[i]), " word banks", sep = ""))
+        Host_data_filt <- Data_to_filt %>%
+          dplyr::mutate_if(is.list, as.character) %>%
+          dplyr::mutate(host = trimws(stringr::str_extract(pooled_data,
+                                                           pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
+          ))) %>%
+          dplyr::filter(stringr::str_detect(
+            pooled_data, stringr::regex(as.character(unlist(Host_word_bank[i])),
+                                        ignore_case = T
+            ))) %>%
+          dplyr::filter(is.na(host) | stringr::str_detect(
+            host, pattern = stringr::regex(as.character(unlist(Host_word_bank[i])),
+                                           ignore_case = T
+            )
+          )) %>%
+          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("ID", "AccID"))
+
+        Host_data_tokeep <- Host_data_tokeep %>%
+          dplyr::bind_rows(Host_data_filt)
+
+        Data_to_filt <- Data_to_filt %>%
+          dplyr::filter(!ID %in% Host_data_tokeep$ID)
+
+        i <- i + 1
+      }
+      Host_data_tokeep <- Host_data_tokeep %>%
+        dplyr::arrange(ID) %>%
+        dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
+
+      Data_to_filt <- Host_data_tokeep
+    }
 
 
     ##### Negate filtration #####
-    if (!is.na(Negate_word_bank)) {
+    if (!is.na(Negate_word_bank[1])) {
+      Negate_data_tokeep <- c()
+      i <- 1
+      while (i <= length(Negate_word_bank)) {
+        print(paste("Searching through ", names(Negate_word_bank[i]), " word banks", sep = ""))
+        Negate_data_filt <- Data_to_filt %>%
+          dplyr::mutate_if(is.list, as.character) %>%
+          dplyr::filter(stringr::str_detect(
+            pooled_data, stringr::regex(as.character(unlist(Negate_word_bank[i])),
+                                        ignore_case = T
+            ))) %>%
+          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("ID", "AccID"))
+
+        Negate_data_tokeep <- Negate_data_tokeep %>%
+          dplyr::bind_rows(Negate_data_filt)
+
+        Data_to_filt <- Data_to_filt %>%
+          dplyr::filter(!ID %in% Negate_data_tokeep$ID)
+
+        i <- i + 1
+      }
+      Negate_data_tokeep <- Negate_data_tokeep %>%
+        dplyr::arrange(ID) %>%
+        dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
+
       Data_to_filt <- Data_to_filt %>%
-        dplyr::mutate_if(is.list, as.character) %>%
-        dplyr::filter(stringr::str_detect(pooled_data, stringr::regex(Negate_word_bank, ignore_case = T), negate = T))
+        filter(!AccID %in% Negate_data_tokeep$AccID)
     }
-
-
 
     ##### Site filtration #####
     if (!is.na(Site_word_bank[1])) {
-      Data_to_filt <- Data_to_filt %>%
-        dplyr::left_join(input_table, by = "AccID")
 
       Site_data_tokeep <- c()
       i <- 1
@@ -383,6 +429,8 @@ txm_ecosrc <- function(
       Site_data_tokeep <- Site_data_tokeep %>%
         dplyr::arrange(ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
+
+      Data_to_filt <- Site_data_tokeep
     }
   } else {
     DocSum <- DocSum %>%
