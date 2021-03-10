@@ -6,37 +6,34 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of taxminer is to …
+Taxonomic annotations - BLAST alignment and text-mining based filtration
+in R
 
 ## Installation
 
 You can install the released version of taxminer from
-[CRAN](https://CRAN.R-project.org) with:
+[Github](https://github.com/) with:
 
 ``` r
-install.packages("taxminer")
+devtools::install_github("taxminer")
 ```
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
-
 ``` r
 library(taxminer)
+dir.create("demo")
 ## extracting accession numbers
-taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina NOT (environmental samples [organism] OR project)",
+taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina",
                     db2src = "nucleotide",
                     out_name = "demo/Fungi_noEnv.seq")
-#> Done! - Found 310 IDs
+#> Done! - Found 339 IDs
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`?
-You can include R chunks like so:
-
 ``` r
-test <- readr::read_delim("demo/Fungi_noEnv.seq", delim = "\n", col_names = "AccIDs", col_types = readr::cols(AccIDs = readr::col_character()))
-test
-#> # A tibble: 620 x 1
+get_accIds <- readr::read_delim("demo/Fungi_noEnv.seq", delim = "\n", col_names = "AccIDs", col_types = readr::cols(AccIDs = readr::col_character()))
+get_accIds
+#> # A tibble: 339 x 1
 #>    AccIDs    
 #>    <chr>     
 #>  1 LC601978.1
@@ -49,18 +46,5 @@ test
 #>  8 CP048237.1
 #>  9 CP048236.1
 #> 10 CP048235.1
-#> # ... with 610 more rows
+#> # ... with 329 more rows
 ```
-
-You’ll still need to render `README.Rmd` regularly, to keep `README.md`
-up-to-date. `devtools::build_readme()` is handy for this. You could also
-use GitHub Actions to re-render `README.Rmd` every time you push. An
-example workflow can be found here:
-<https://github.com/r-lib/actions/tree/master/examples>.
-
-You can also embed plots, for example:
-
-<img src="man/figures/README-pressure-1.png" width="100%" />
-
-In that case, don’t forget to commit and push the resulting figure
-files, so they display on GitHub and CRAN.
