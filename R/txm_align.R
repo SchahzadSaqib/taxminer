@@ -25,11 +25,11 @@ utils::globalVariables(c(
 #'                        package. Further information regarding search limitations is
 #'                        available on
 #'                        \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST command line user manual}
-#' @param do_acc_check (Optional) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
+#' @param do_acc_check (Logical) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
 #'                      pre-processed (blastdb_aliastool) prior to being used for restricting the database.
 #'                      Set this to TRUE is an unprocessed accession ID list is specified.
-#' @param show (Optional) Default FALSE. Switch from console to terminal?
-#' @param Run_Blast (Optional) Default TRUE. Set to FALSE if an existing comma-delimited alignment file is present
+#' @param show (Logical) Default FALSE. Switch from console to terminal?
+#' @param Run_Blast (Logical) Default TRUE. Set to FALSE if an existing comma-delimited alignment file is present
 #'                   in the directory and the function should be utilized to process it.
 #' @param qcvg (Optional) Default 98. Query coverage filtration in alignment as a percentage.
 #' @param pctidt (Optional) Default 98. Percentage identity filtration in alignment as a percentage
