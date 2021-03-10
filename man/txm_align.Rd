@@ -45,13 +45,13 @@ package. Further information regarding search limitations is
 available on
 \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST command line user manual}}
 
-\item{do_acc_check}{(Optional) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
+\item{do_acc_check}{(Logical) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
 pre-processed (blastdb_aliastool) prior to being used for restricting the database.
 Set this to TRUE is an unprocessed accession ID list is specified.}
 
-\item{show}{(Optional) Default FALSE. Switch from console to terminal?}
+\item{show}{(Logical) Default FALSE. Switch from console to terminal?}
 
-\item{Run_Blast}{(Optional) Default TRUE. Set to FALSE if an existing comma-delimited alignment file is present
+\item{Run_Blast}{(Logical) Default TRUE. Set to FALSE if an existing comma-delimited alignment file is present
 in the directory and the function should be utilized to process it.}
 
 \item{qcvg}{(Optional) Default 98. Query coverage filtration in alignment as a percentage.}
