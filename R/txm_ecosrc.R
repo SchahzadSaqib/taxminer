@@ -382,7 +382,7 @@ txm_ecosrc <- function(
           dplyr::bind_rows(Negate_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::filter(!ID %in% Negate_data_tokeep$ID)
+          dplyr::filter(!.data$ID %in% Negate_data_tokeep$ID)
 
         i <- i + 1
       }
@@ -391,7 +391,7 @@ txm_ecosrc <- function(
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
       Data_to_filt <- Data_to_filt %>%
-        dplyr::filter(!AccID %in% Negate_data_tokeep$AccID)
+        dplyr::filter(!.data$AccID %in% Negate_data_tokeep$AccID)
     }
 
     ##### Site filtration #####
@@ -422,12 +422,12 @@ txm_ecosrc <- function(
           dplyr::bind_rows(Site_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::filter(!ID %in% Site_data_tokeep$ID)
+          dplyr::filter(!.data$ID %in% Site_data_tokeep$ID)
 
         i <- i + 1
       }
       Site_data_tokeep <- Site_data_tokeep %>%
-        dplyr::arrange(ID) %>%
+        dplyr::arrange(.data$ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
       Data_to_filt <- Site_data_tokeep
