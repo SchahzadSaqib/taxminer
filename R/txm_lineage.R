@@ -100,5 +100,7 @@ txm_lineage <- function(taxids, bindtoAcc = T) {
     taxids <- taxids %>%
       dplyr::rename("species" = .data$Organism) %>%
       dplyr::left_join(lineage, by = "TaxId")
+  } else {
+    lineage
   }
 }
