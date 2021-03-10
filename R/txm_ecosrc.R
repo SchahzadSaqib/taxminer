@@ -45,6 +45,19 @@ txm_ecosrc <- function(
     stop("Empty Data.frame -  Aborting Relevance filtration")
   }
 
+  filt_split <- unlist(stringr::str_split(c(filter_host, filter_site, filter_negate), pattern = "\\+"))
+  filt_split <- filt_split[!is.na(filt_split)]
+
+  i <- 1
+  while(i <= length(filt_split)) {
+    if (!filt_split[i] %in% names(Word_banks)) {
+      stop(paste("Invalid filtration entry ", filt_split[i], sep = ""))
+    } else {
+      i <- i + 1
+    }
+  }
+
+
   ##### Extract distinct IDs from the input table #####
   AccIDs_to_src <- input_table %>%
     dplyr::distinct(.data$AccID)
