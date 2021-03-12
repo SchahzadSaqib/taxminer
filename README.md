@@ -15,7 +15,7 @@ You can install the released version of taxminer from
 [Github](https://github.com/) with:
 
 ``` r
-devtools::install_github("taxminer")
+devtools::install_github("SchahzadSaqib/taxminer")
 ```
 
 ## Example
@@ -47,4 +47,5 @@ get_accIds
 #>  9 CP048236.1
 #> 10 CP048235.1
 #> # ... with 329 more rows
+unlink("demo", recursive = T)
 ```

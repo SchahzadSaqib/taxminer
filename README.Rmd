@@ -25,13 +25,13 @@ Taxonomic annotations - BLAST alignment and text-mining based filtration in R
 You can install the released version of taxminer from [Github](https://github.com/) with:
 
 ``` r
-devtools::install_github("taxminer")
+devtools::install_github("SchahzadSaqib/taxminer")
 ```
 
 ## Example
 
 
-```{r example}
+```{r example, echo=TRUE}
 library(taxminer)
 dir.create("demo")
 ## extracting accession numbers
@@ -41,7 +41,8 @@ taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina",
 ```
 
 
-```{r cars}
+```{r cars, echo=TRUE}
 get_accIds <- readr::read_delim("demo/Fungi_noEnv.seq", delim = "\n", col_names = "AccIDs", col_types = readr::cols(AccIDs = readr::col_character()))
 get_accIds
+unlink("demo", recursive = T)
 ```
