@@ -83,7 +83,7 @@ FASTA_file <- ASVs %>%
   purrr::pmap(~ paste(.x, .y, sep = "\n")) %>%
   unlist()
 
-readr::write_lines(FASTA_file, file = paste("FASTA_", output_name, ".fa", sep = ""))
+readr::write_lines(FASTA_file, file = paste(output_name, ".fa", sep = ""))
 
 
 if (Run_Blast == T) {
