@@ -130,7 +130,7 @@ if (Run_Blast == T) {
     }
   }
 
-  if (file.size(paste(output_name, ".fa", sep = "")) == 0) {
+  if (file.size(paste("FASTA_", output_name, ".fa", sep = "")) == 0) {
     stop(print("Empty query object provided"))
   }
 
@@ -175,7 +175,7 @@ if (Run_Blast == T) {
 
 
 # Read in annotated list
-Blast_output <- readr::read_delim(paste(output_name, ".csv", sep = ""),
+Blast_output <- readr::read_delim(paste("Alignment_", output_name, ".csv", sep = ""),
                            "\t", col_names = F,
                            col_types = readr::cols(X3 = readr::col_number())) %>%
   magrittr::set_colnames(c("ID", "SeqID", "TaxID", "Species", "bitscore",
