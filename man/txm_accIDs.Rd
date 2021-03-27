@@ -14,7 +14,7 @@ txm_accIDs(text_query = NA, db2src = "nucleotide", out_name = NA)
 \item{out_name}{(Required) Default NA. Name of the output file.}
 }
 \value{
-An list of accession IDs, one per line, corresponding to the user defined text query and NCBI database
+A list of accession IDs, one per line, corresponding to the user defined text query and NCBI database
 }
 \description{
 Fetcha a list of accession IDs that will be used for restricting subsequent BLAST alignments. This uses \link[rentrez]{rentrez}

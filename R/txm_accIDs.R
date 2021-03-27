@@ -16,7 +16,7 @@
 #'                      db2src = "nucleotide",
 #'                      out_name = "Fungi_noEnv.seq")
 #'}
-#' @return An list of accession IDs, one per line, corresponding to the user defined text query and NCBI database
+#' @return A list of accession IDs, one per line, corresponding to the user defined text query and NCBI database
 #' @importFrom magrittr %>%
 #' @export
 
@@ -36,6 +36,7 @@ txm_accIDs <- function(
 
   ##### Divided into chunks of 10,000 to fetch in batches #####
   total_ids <- AccIDs_esearch$count
+  message(paste("Found ", AccIDs_esearch$count, " IDs", sep = ""))
   start_chunk <- 0
   pb_assign <- progress::progress_bar$new(
     format = "  downloading [:bar] :current/:total (:percent) eta: :eta elasped: :elapsed",
@@ -43,13 +44,20 @@ txm_accIDs <- function(
   while (start_chunk <= total_ids) {
     pb_assign$tick()
     seqname <- out_name
-    returns <- rentrez::entrez_fetch(db = "nuccore", web_history = AccIDs_esearch$web_history,
+    return_chunk <- try({
+      returns <- rentrez::entrez_fetch(db = "nuccore", web_history = AccIDs_esearch$web_history,
                                      rettype = "acc",
                                      retstart = start_chunk, retmax = 10000)
-    readr::write_lines(returns, seqname, append = T, sep = "")
-    start_chunk <- start_chunk + 10000
+      readr::write_lines(returns, seqname, append = T, sep = "")
+    })
+    if (!class(return_chunk) == "try-error") {
+      start_chunk <- start_chunk + 10000
+    } else {
+      Sys.sleep(1)
+      start_chunk <- start_chunk
+    }
     if (start_chunk >= total_ids) {
-      message(paste("Done! - ", "Found ", AccIDs_esearch$count, " IDs", sep = ""))
+      message(paste("Done!"))
     }
   }
 }
