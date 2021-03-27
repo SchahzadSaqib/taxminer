@@ -44,12 +44,20 @@ txm_accIDs <- function(
   while (start_chunk <= total_ids) {
     pb_assign$tick()
     seqname <- out_name
+<<<<<<< HEAD
     return_chunk <- try({
+=======
+    try({
+>>>>>>> a5d9b9092fa815c78e7e183e37d9da8a1c30cb19
       returns <- rentrez::entrez_fetch(db = "nuccore", web_history = AccIDs_esearch$web_history,
                                      rettype = "acc",
                                      retstart = start_chunk, retmax = 10000)
       readr::write_lines(returns, seqname, append = T, sep = "")
+<<<<<<< HEAD
     })
+=======
+    }) -> return_chunk
+>>>>>>> a5d9b9092fa815c78e7e183e37d9da8a1c30cb19
     if (!class(return_chunk) == "try-error") {
       start_chunk <- start_chunk + 10000
     } else {
