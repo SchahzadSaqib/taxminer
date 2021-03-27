@@ -130,7 +130,7 @@ if (Run_Blast == T) {
     }
   }
 
-  if (file.size(paste("FASTA_", output_name, ".fa", sep = "")) == 0) {
+  if (file.size(paste(output_name, ".fa", sep = "")) == 0) {
     stop(print("Empty query object provided"))
   }
 
