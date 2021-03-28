@@ -261,7 +261,7 @@ txm_ecosrc <- function(
               Abstract, sep = "")
             ) %>%
             dplyr::bind_cols(PMIDs_MESH) %>%
-            dplyr::select(.data$PMIDs, .data$Article, .data$MeshHeadingList)
+            dplyr::select(any_of(c("PMIDs", "Article", "MeshHeadingList")))
 
           PMIDs_data <- PMIDs_data %>%
             dplyr::bind_rows(Title_Abstract)
