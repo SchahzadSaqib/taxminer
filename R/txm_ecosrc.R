@@ -41,7 +41,6 @@ txm_ecosrc <- function(
   savedata = T) {
 
   ##### Check whether the input contains data #####
-
   if (is.na(input_table[[1]][[1]])) {
     stop("Empty Data.frame -  Aborting Relevance filtration")
   }
@@ -101,43 +100,52 @@ txm_ecosrc <- function(
 
 
     ##### Accession ID retrieval #####
-
     i <- 1
     DocSum <- data.frame()
     pb_assign <- progress::progress_bar$new(
-      format = "  downloading [:bar] :current/:total (:percent) eta: :eta elasped: :elapsed",
+      format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
       total = round(num_groups), clear = FALSE, width= 60)
     print("Retrieving Accession ID data")
     while (i <= round(num_groups)) {
-      pb_assign$tick()
-      AccIDs_post <- rentrez::entrez_post(
-        db = "nuccore",
-        id = paste(as.character(unlist(AccIDs_to_src[[i]])),
-                   collapse = ","
-        )
-      )
-      AccIDs_summary <- rentrez::entrez_summary(db = "nucleotide", web_history = AccIDs_post,
-                                                version = "2.0", retmode = "xml")
-      AccIDs_extract <- t(rentrez::extract_from_esummary(AccIDs_summary,
-                                                         elements = c(
-                                                           "AccessionVersion", "Organism",
-                                                           "Strain", "Title", "TaxId",
-                                                           "SubType", "SubName"
-                                                         )
-      )) %>%
-        as.data.frame() %>%
-        dplyr::mutate(dplyr::across(tidyselect::vars_select_helpers$where(is.list),
-                                    .fns = ~ as.character(.x)))
-
-      DocSum <- DocSum %>%
-        dplyr::bind_rows(AccIDs_extract)
-      if (i >= round(num_groups)) {
-        message("...Done!")
+      chunk_ID <- try({
+        # Post IDs
+        AccIDs_post <- rentrez::entrez_post(
+          db = "nuccore",
+          id = paste(as.character(unlist(AccIDs_to_src[[i]])),
+                     collapse = ","))
+        # Download summary
+        AccIDs_summary <- rentrez::entrez_summary(
+          db = "nucleotide",
+          web_history = AccIDs_post,
+          version = "2.0",
+          retmode = "xml")
+        # Extract elements
+        AccIDs_extract <- t(rentrez::extract_from_esummary(
+          AccIDs_summary,
+          elements = c("AccessionVersion", "Organism",
+                       "Strain", "Title", "TaxId",
+                       "SubType", "SubName"))) %>%
+          as.data.frame() %>% dplyr::mutate(dplyr::across(tidyselect::vars_select_helpers$where(is.list),
+                                                          .fns = ~as.character(.x)))
+      })
+      if(!class(chunk_ID) == "try-error") {
+        # Bind documents
+        DocSum <- DocSum %>%
+          dplyr::bind_rows(AccIDs_extract)
+        i <- i + 1
+        pb_assign$tick()
+        if (i > round(num_groups)) {
+          message("Done!")
+        }
+        Sys.sleep(1)
+      } else {
+        print("trying again")
+        i <- i
+        Sys.sleep(1)
       }
-      i <- i + 1
-      Sys.sleep(1)
     }
 
+    # Clean final list
     DocSum <- DocSum %>%
       dplyr::mutate(meta = Clean_list(DocSum)) %>%
       dplyr::select(-c(.data$SubType, .data$SubName))
@@ -145,22 +153,24 @@ txm_ecosrc <- function(
 
 
     ###### Elink extraction ######
-
     i <- 1
     PMIDs <- data.frame()
     pb_assign <- progress::progress_bar$new(
-      format = "  downloading [:bar] :current/:total (:percent) eta: :eta elasped: :elapsed",
+      format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
       total = round(num_groups), clear = FALSE, width= 60)
     print("Retrieving PubMed links")
     while (i <= round(num_groups)) {
-      pb_assign$tick(1)
-      AccIDs_elink <- rentrez::entrez_link(
-        db = "pubmed", dbfrom = "nuccore",
-        id = c(paste(as.character(unlist(AccIDs_to_src[[i]])))),
-        cmd = "neighbor", by_id = T,
-        rettype = "native", idtype = "acc"
+      chunk_link <- try({
+        # Find links
+        AccIDs_elink <- rentrez::entrez_link(
+          db = "pubmed", dbfrom = "nuccore",
+          id = c(paste(as.character(unlist(AccIDs_to_src[[i]])))),
+          cmd = "neighbor", by_id = T,
+          rettype = "native", idtype = "acc"
       )
-
+      })
+      if(is.list(chunk_link)) {
+      # Extract Links
       if (length(AccIDs_elink) > 0) {
         names(AccIDs_elink) <- c(paste(as.character(unlist(AccIDs_to_src[[i]]))))
         AccIDs_elink <- purrr::map(AccIDs_elink,
@@ -175,16 +185,21 @@ txm_ecosrc <- function(
               dplyr::distinct(PMIDs, .keep_all = T)
           }
       }
-
       if (!is.null(AccIDs_elink)) {
         PMIDs <- PMIDs %>%
           dplyr::bind_rows(AccIDs_elink)
       }
-      if (i >= round(num_groups)) {
-        message("...Done!")
+        i <- i + 1
+        pb_assign$tick()
+        if (i > round(num_groups)) {
+          message("Done!")
+        }
+        Sys.sleep(1)
+      } else {
+        print("trying again")
+        i <- i
+        Sys.sleep(1)
       }
-      i <- i + 1
-      Sys.sleep(1)
     }
 
     ##### PubMed data #####
@@ -205,15 +220,15 @@ txm_ecosrc <- function(
       i <- 1
       PMIDs_data <- data.frame()
       pb_assign <- progress::progress_bar$new(
-        format = "  downloading [:bar] :current/:total (:percent) eta: :eta elasped: :elapsed",
+        format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
         total = round(num_groups), clear = FALSE, width= 60)
       print("Retrieving PubMed data")
       while (i <= round(num_groups)) {
-        pb_assign$tick(1)
-        PMIDs_post <- rentrez::entrez_post(
-          db = "pubmed",
-          id = paste(as.character(unlist(PMIDs_to_src[[i]])),
-                     collapse = ","
+        chunk_pub <- try({
+          PMIDs_post <- rentrez::entrez_post(
+            db = "pubmed",
+            id = paste(as.character(unlist(PMIDs_to_src[[i]])),
+                      collapse = ","
           )
         )
         PMIDs_fetch <- rentrez::entrez_fetch(
@@ -252,11 +267,19 @@ txm_ecosrc <- function(
             dplyr::bind_rows(Title_Abstract)
           j <- j + 1
         }
-        if (i >= round(num_groups)) {
-          message("...Done!")
+        })
+        if(!class(chunk_pub) == "try-error") {
+          i <- i + 1
+          pb_assign$tick()
+          if (i > round(num_groups)) {
+            message("Done!")
+          }
+          Sys.sleep(1)
+        } else {
+          print("trying again")
+          i <- i
+          Sys.sleep(1)
         }
-        i <- i + 1
-        Sys.sleep(1)
       }
 
       PMIDs_data <- PMIDs_data %>%
