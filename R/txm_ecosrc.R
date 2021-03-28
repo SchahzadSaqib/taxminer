@@ -256,6 +256,10 @@ txm_ecosrc <- function(
             purrr::keep(.x = ., names(.) %in% c("Journal", "ArticleTitle", "Abstract")) %>%
             purrr::map_dfr(.x = ., .f = XML::xmlValue) %>%
             as.data.frame() %>%
+            dplyr::mutate(Abstract = ifelse("Abstract" %in% names(.), Abstract, NA)) %>%
+            dplyr::mutate(Journal = ifelse("Journal" %in% names(.), Journal, NA)) %>%
+            dplyr::mutate(ArticleTitle = ifelse("ArticleTitle" %in% names(.),
+                                                ArticleTitle, NA)) %>%
             dplyr::mutate(Article = paste0(
               "Journal: ", Journal, " - ArticleTitle: ", ArticleTitle, " - Abstract: ",
               Abstract, sep = "")
