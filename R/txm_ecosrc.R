@@ -1,5 +1,6 @@
 utils::globalVariables(c(
-  "AccessionVersion", "TaxId", "pooled_data", "host", "Isolation_source", "ID", "."
+  "AccessionVersion", "TaxId", "pooled_data", "host", "Isolation_source", "ID", ".",
+  "Journal", "ArticleTitle", "Abstract"
 ))
 
 #' Text mining and filtration
@@ -221,19 +222,34 @@ txm_ecosrc <- function(
         )
         j <- 1
         while (j <= nrow(XML::xmlToDataFrame(PMIDs_fetch))) {
-          xml <- XML::xmlRoot(PMIDs_fetch)
-          xmlnodes <- XML::xmlSApply(xml[[j]], XML::xmlName)
-          xmlsub <- which(xmlnodes == "MedlineCitation")
-          xmlsubnode <- xml[[j]][[xmlsub]]
-          nodeChildren <- XML::xmlChildren(xmlsubnode)
-          names(nodeChildren) <- make.unique(names(nodeChildren))
+          Med_sub <- XML::xmlRoot(PMIDs_fetch) %>%
+            .[[j]] %>%
+            .[["MedlineCitation"]]
 
-          PMIDs_step <- purrr::map_dfr(.x = nodeChildren, .f = XML::xmlValue) %>%
+          PMIDs_MESH <- Med_sub %>%
+            XML::xmlChildren() %>%
+            purrr::set_names(as.character(make.unique(names(.)))) %>%
+            purrr::keep(.x = ., names(.) %in% c("PMID", "MeshHeadingList")) %>%
+            purrr::map_dfr(.x = ., .f = XML::xmlValue) %>%
             as.data.frame() %>%
             dplyr::rename("PMIDs" = .data$PMID)
 
+          Title_Abstract <- Med_sub %>%
+            .[["Article"]] %>%
+            XML::xmlChildren() %>%
+            purrr::set_names(as.character(make.unique(names(.)))) %>%
+            purrr::keep(.x = ., names(.) %in% c("Journal", "ArticleTitle", "Abstract")) %>%
+            purrr::map_dfr(.x = ., .f = XML::xmlValue) %>%
+            as.data.frame() %>%
+            dplyr::mutate(Article = paste0(
+              "Journal: ", Journal, " - ArticleTitle: ", ArticleTitle, " - Abstract: ",
+              Abstract, sep = "")
+            ) %>%
+            dplyr::bind_cols(PMIDs_MESH) %>%
+            dplyr::select(.data$PMIDs, .data$Article, .data$MeshHeadingList)
+
           PMIDs_data <- PMIDs_data %>%
-            dplyr::bind_rows(PMIDs_step)
+            dplyr::bind_rows(Title_Abstract)
           j <- j + 1
         }
         if (i >= round(num_groups)) {
@@ -245,7 +261,7 @@ txm_ecosrc <- function(
 
       PMIDs_data <- PMIDs_data %>%
         dplyr::left_join(PMIDs, by = "PMIDs") %>%
-        dplyr::select(.data$AccID, .data$PMIDs, .data$Article, .data$MedlineJournalInfo,
+        dplyr::select(.data$AccID, .data$PMIDs, .data$Article,
                       .data$MeshHeadingList)
 
 
@@ -320,6 +336,9 @@ txm_ecosrc <- function(
     Data_to_filt <- DocSum %>%
       dplyr::mutate_if(is.factor, as.character) %>%
       dplyr::ungroup() %>%
+      dplyr::mutate(host = trimws(stringr::str_extract(.data$meta,
+                                                       pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
+      ))) %>%
       tidyr::unite("pooled_data", c(.data$MeshHeadingList, .data$Article, .data$meta),
                    na.rm = T) %>%
       dplyr::left_join(input_table, by = "AccID")
@@ -334,9 +353,6 @@ txm_ecosrc <- function(
         print(paste("Searching through ", names(Host_word_bank[i]), " word banks", sep = ""))
         Host_data_filt <- Data_to_filt %>%
           dplyr::mutate_if(is.list, as.character) %>%
-          dplyr::mutate(host = trimws(stringr::str_extract(pooled_data,
-                                                           pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
-          ))) %>%
           dplyr::filter(stringr::str_detect(
             pooled_data, stringr::regex(as.character(unlist(Host_word_bank[i])),
                                         ignore_case = T
