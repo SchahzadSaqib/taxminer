@@ -66,7 +66,7 @@ txm_ecosrc <- function(
   if (!is.na(Precomp_tbl)) {
     print("Reading in dataset and searching for existing Accession ids")
     Precomp_tbl_sub <- readRDS(Precomp_tbl) %>%
-      dplyr::left_join(AccIDs_to_src, by = "AccID")
+      dplyr::right_join(AccIDs_to_src, by = "AccID")
 
     AccIDs_to_src <- AccIDs_to_src %>%
       dplyr::filter(!.data$AccID %in% Precomp_tbl_sub$AccID) %>%
