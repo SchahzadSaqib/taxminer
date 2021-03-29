@@ -408,10 +408,10 @@ txm_ecosrc <- function(
         Data_to_filt <- Data_to_filt %>%
           dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
           dplyr::select(ID, everything()) %>%
-          arrange(ID) %>%
+          dplyr::arrange(ID) %>%
           dplyr::filter(!ID %in% Host_data_tokeep$ID) %>%
           dplyr::distinct(AccID, .keep_all = T) %>%
-          select(-ID)
+          dplyr::select(-ID)
 
         i <- i + 1
       }
@@ -421,7 +421,7 @@ txm_ecosrc <- function(
 
       Data_to_filt <- Host_data_tokeep %>%
         dplyr::distinct(AccID, .keep_all = T) %>%
-        select(-ID)
+        dplyr::select(-ID)
     }
 
 
@@ -454,7 +454,7 @@ txm_ecosrc <- function(
           arrange(ID) %>%
           dplyr::filter(!ID %in% Negate_data_tokeep$ID) %>%
           dplyr::distinct(AccID, .keep_all = T) %>%
-          select(-ID)
+          dplyr::select(-ID)
 
         i <- i + 1
       }
@@ -464,7 +464,7 @@ txm_ecosrc <- function(
 
       Data_to_filt <- Negate_data_tokeep %>%
         dplyr::distinct(AccID, .keep_all = T) %>%
-        select(-ID)
+        dplyr::select(-ID)
     }
 
     ##### Site filtration #####
@@ -495,10 +495,10 @@ txm_ecosrc <- function(
             dplyr::select(input_table,
                           c(ID, .data$AccID)), by = c("AccID")) %>%
           dplyr::select(ID, everything()) %>%
-          arrange(ID) %>%
+          dplyr::arrange(ID) %>%
           dplyr::filter(!ID %in% Site_data_tokeep$ID) %>%
           dplyr::distinct(AccID, .keep_all = T) %>%
-          select(-ID)
+          dplyr::select(-ID)
 
         i <- i + 1
       }
