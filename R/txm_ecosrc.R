@@ -268,7 +268,11 @@ txm_ecosrc <- function(
             dplyr::select(any_of(c("PMIDs", "Article", "MeshHeadingList")))
 
           PMIDs_data <- PMIDs_data %>%
-            dplyr::bind_rows(Title_Abstract)
+            dplyr::bind_rows(Title_Abstract) %>%
+            dplyr::mutate(MeshHeadingList = ifelse(
+              "MeshHeadingList" %in% names(.), MeshHeadingList, NA)) %>%
+            dplyr::mutate(Article = ifelse(
+              "Article" %in% names(.), Article, NA))
           j <- j + 1
         }
         })
@@ -363,12 +367,17 @@ txm_ecosrc <- function(
     Data_to_filt <- DocSum %>%
       dplyr::mutate_if(is.factor, as.character) %>%
       dplyr::ungroup() %>%
-      dplyr::mutate(host = trimws(stringr::str_extract(.data$meta,
-                                                       pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
+      dplyr::mutate(host = trimws(stringr::str_extract(
+        .data$meta,
+        pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
       ))) %>%
+      dplyr::mutate(Isolation_source = trimws(
+        stringr::str_extract(
+          .data$meta,
+          pattern = stringr::regex("(?<=isolation_source:).*?(?=\\s-)|(?<=isolation_source:).*?(?=$)")
+        ))) %>%
       tidyr::unite("pooled_data", c(.data$MeshHeadingList, .data$Article, .data$meta),
-                   na.rm = T) %>%
-      dplyr::left_join(input_table, by = "AccID")
+                   na.rm = T)
 
 
     ##### Host filtration #####
@@ -389,13 +398,20 @@ txm_ecosrc <- function(
                                            ignore_case = T
             )
           )) %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("ID", "AccID"))
+          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
+          dplyr::select(ID, everything()) %>%
+          dplyr::arrange(ID)
 
         Host_data_tokeep <- Host_data_tokeep %>%
           dplyr::bind_rows(Host_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::filter(!ID %in% Host_data_tokeep$ID)
+          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
+          dplyr::select(ID, everything()) %>%
+          arrange(ID) %>%
+          dplyr::filter(!ID %in% Host_data_tokeep$ID) %>%
+          dplyr::distinct(AccID, .keep_all = T) %>%
+          select(-ID)
 
         i <- i + 1
       }
@@ -403,7 +419,9 @@ txm_ecosrc <- function(
         dplyr::arrange(ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
-      Data_to_filt <- Host_data_tokeep
+      Data_to_filt <- Host_data_tokeep %>%
+        dplyr::distinct(AccID, .keep_all = T) %>%
+        select(-ID)
     }
 
 
@@ -417,15 +435,26 @@ txm_ecosrc <- function(
           dplyr::mutate_if(is.list, as.character) %>%
           dplyr::filter(stringr::str_detect(
             pooled_data, stringr::regex(as.character(unlist(Negate_word_bank[i])),
-                                        ignore_case = T
-            ))) %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("ID", "AccID"))
+                                        ignore_case = T), negate = T) |
+              stringr::str_detect(pooled_data, "ISHAM") |
+              stringr::str_detect(host, as.character(unlist(Host_word_bank)))
+          ) %>%
+          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
+          dplyr::select(ID, everything()) %>%
+          dplyr::arrange(ID)
 
         Negate_data_tokeep <- Negate_data_tokeep %>%
           dplyr::bind_rows(Negate_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::filter(!.data$ID %in% Negate_data_tokeep$ID)
+          dplyr::left_join(
+            dplyr::select(input_table,
+                          c(ID, .data$AccID)), by = c("AccID")) %>%
+          dplyr::select(ID, everything()) %>%
+          arrange(ID) %>%
+          dplyr::filter(!ID %in% Negate_data_tokeep$ID) %>%
+          dplyr::distinct(AccID, .keep_all = T) %>%
+          select(-ID)
 
         i <- i + 1
       }
@@ -433,8 +462,9 @@ txm_ecosrc <- function(
         dplyr::arrange(ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
-      Data_to_filt <- Data_to_filt %>%
-        dplyr::filter(!.data$AccID %in% Negate_data_tokeep$AccID)
+      Data_to_filt <- Negate_data_tokeep %>%
+        dplyr::distinct(AccID, .keep_all = T) %>%
+        select(-ID)
     }
 
     ##### Site filtration #####
@@ -446,10 +476,6 @@ txm_ecosrc <- function(
         print(paste("Searching through ", names(Site_word_bank[i]), " word banks", sep = ""))
         Site_data_filt <- Data_to_filt %>%
           dplyr::mutate_if(is.list, as.character) %>%
-          dplyr::mutate(Isolation_source = trimws(
-            stringr::str_extract(pooled_data,
-                                 pattern = stringr::regex("(?<=isolation_source:).*?(?=\\s-)|(?<=isolation_source:).*?(?=$)")
-            ))) %>%
           dplyr::filter(stringr::str_detect(
             pooled_data, stringr::regex(as.character(unlist(Site_word_bank[i])),
                                         ignore_case = T
@@ -459,13 +485,20 @@ txm_ecosrc <- function(
                                                        ignore_case = T
             )
           )) %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("ID", "AccID"))
+          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID"))
 
         Site_data_tokeep <- Site_data_tokeep %>%
           dplyr::bind_rows(Site_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::filter(!.data$ID %in% Site_data_tokeep$ID)
+          dplyr::left_join(
+            dplyr::select(input_table,
+                          c(ID, .data$AccID)), by = c("AccID")) %>%
+          dplyr::select(ID, everything()) %>%
+          arrange(ID) %>%
+          dplyr::filter(!ID %in% Site_data_tokeep$ID) %>%
+          dplyr::distinct(AccID, .keep_all = T) %>%
+          select(-ID)
 
         i <- i + 1
       }
