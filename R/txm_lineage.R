@@ -41,58 +41,55 @@ txm_lineage <- function(taxids, bindtoAcc = T) {
     total = round(num_groups), clear = FALSE, width= 60)
   print("Retrieving Lineage")
   while (i <= round(num_groups)) {
-    pb_assign$tick(1)
-    TaxIDs_post <- rentrez::entrez_post(
-      db = "taxonomy",
-      id = paste(as.character(unlist(TaxID_to_src[[i]])),
-                 collapse = ","
+    chunk_lin <- try({
+      # Post TaxIDs
+      TaxIDs_post <- rentrez::entrez_post(
+        db = "taxonomy",
+        id = paste(as.character(unlist(TaxID_to_src[[i]])),
+                   collapse = ","
+        )
       )
-    )
+      # Fetch full taxonomy from web history
+      TaxIDs_fetch <- rentrez::entrez_fetch(
+        db = "taxonomy", web_history = TaxIDs_post,
+        rettype = "xml", retmode = "xml", parsed = T
+      )
+      j <- 1
+      while (j <= nrow(XML::xmlToDataFrame(TaxIDs_fetch))) {
+        xml_lineage <- XML::xmlRoot(TaxIDs_fetch) %>%
+          .[[j]] %>%
+          .[["LineageEx"]] %>%
+          XML::xmlChildren() %>%
+          purrr::set_names(make.unique(as.character(purrr::map(
+            .x = .,
+            .f = ~ XML::xmlValue(.x[[3]]))))
+          ) %>%
+          purrr::map_dfr(
+            .x = .,
+            .f = ~ XML::xmlValue(.x[[2]])
+          ) %>%
+          as.data.frame() %>%
+          dplyr::mutate(TaxId = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][[1]])) %>%
+          dplyr::select(TaxId, everything())
 
-    TaxIDs_fetch <- rentrez::entrez_fetch(
-      db = "taxonomy", web_history = TaxIDs_post,
-      rettype = "xml", retmode = "xml", parsed = T
-    )
-
-    if (!class(try({XML::xmlToDataFrame(TaxIDs_fetch)}, silent = T)) == "try-error") {
-      if (nrow(
-        XML::xmlToDataFrame(TaxIDs_fetch)) == length(as.character(unlist(TaxID_to_src[[i]])))) {
-
-        j <- 1
-        while (j <= nrow(XML::xmlToDataFrame(TaxIDs_fetch))) {
-          xml <- XML::xmlRoot(TaxIDs_fetch)
-          xmlnodes <- XML::xmlSApply(xml[[j]], XML::xmlName)
-          xmlsub <- which(xmlnodes == "LineageEx")
-          xmlsubnode <- xml[[j]][[xmlsub]]
-          nodeChildren <- XML::xmlChildren(xmlsubnode)
-
-          names(nodeChildren) <- make.unique(as.character(purrr::map(
-            .x = nodeChildren,
-            .f = ~ XML::xmlValue(.x[[3]])
-          )))
-
-
-          lineage_step <- purrr::map_dfr(.x = nodeChildren, .f = ~ XML::xmlValue(.x[[2]])) %>%
-            as.data.frame() %>%
-            dplyr::mutate(taxid = XML::xmlValue(xml[[j]][[1]]))
-
-          lineage <- lineage %>%
-            dplyr::bind_rows(lineage_step)
-          j <- j + 1
-        }
-        if (i >= round(num_groups)) {
-          message("...Done!")
-        }
-        i <- i + 1
-        Sys.sleep(1)
+        lineage <- lineage %>%
+          dplyr::bind_rows(xml_lineage)
+        j <- j + 1
       }
+    })
+    if(!class(chunk_lin) == "try-error") {
+      if (i >= round(num_groups)) {
+        message("...Done!")
+      }
+      i <- i + 1
+      pb_assign$tick()
+      Sys.sleep(1)
     } else {
+      i <- i
       Sys.sleep(1)
     }
   }
-
   lineage <- lineage %>%
-    dplyr::rename("TaxId" = .data$taxid) %>%
     dplyr::select(.data$TaxId, .data$superkingdom, .data$phylum, .data$class,
                   .data$order, .data$family, .data$genus)
 
