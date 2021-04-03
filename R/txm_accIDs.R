@@ -42,7 +42,6 @@ txm_accIDs <- function(
     format = "  downloading [:bar] :current/:total (:percent) eta: :eta elasped: :elapsed",
     total = total_ids/10000, clear = FALSE, width= 60)
   while (start_chunk <= total_ids) {
-    pb_assign$tick()
     seqname <- out_name
     return_chunk <- try({
       returns <- rentrez::entrez_fetch(db = "nuccore", web_history = AccIDs_esearch$web_history,
@@ -52,6 +51,7 @@ txm_accIDs <- function(
     })
     if (!class(return_chunk) == "try-error") {
       start_chunk <- start_chunk + 10000
+      pb_assign$tick()
     } else {
       Sys.sleep(1)
       start_chunk <- start_chunk
