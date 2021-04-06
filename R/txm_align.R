@@ -43,11 +43,11 @@ txm_align <- function(
 input,
 previous_run = NULL,
 task = "megablast",
-database_path = "~/Documents/NCBI_databases/16S",
-database_name = "16S_ribosomal_RNA",
+database_path = NULL,
+database_name = NULL,
 output_name = paste("Output", Sys.Date(), sep = ""),
 threads = 1,
-accession_list = "Bacteria_noEnv.seq",
+accession_list = NULL,
 do_acc_check = F,
 show = F,
 Run_Blast = T,
@@ -55,6 +55,14 @@ qcvg = 98,
 pctidt = 98,
 max_out = 500
 ) {
+
+  if (is.null(database_path)) {
+    stop("Please provide the full path to the database")
+  }
+
+  if (is.null(database_name)) {
+    stop("Please provide the full name of the database")
+  }
 
 # Reset seqs to include all ASVs
 seqs <- dada2::getSequences(input) %>%
@@ -175,17 +183,21 @@ if (Run_Blast == T) {
 
 
 # Read in annotated list
-Blast_output <- readr::read_delim(paste("Alignment_", output_name, ".csv", sep = ""),
-                           "\t", col_names = F,
-                           col_types = readr::cols(X3 = readr::col_number())) %>%
-  magrittr::set_colnames(c("ID", "SeqID", "TaxID", "Species", "bitscore",
-                           "qcovs", "Evalue", "Pct")) %>%
-  as.data.frame() %>%
-  #mutate(Species = sub('^([^ ]+ [^ ]+).*', '\\1', Species)) %>%
-  dplyr::mutate(SeqID = stringr::str_replace_all(.data$SeqID, pattern = "\\|",
-                                                 replacement = ";")) %>%
-  dplyr::mutate(AccID = sub(".*?;.*?;.*?;(.*?);.*", "\\1", .data$SeqID)) %>%
-  dplyr::mutate(GiID = sub("gi;(.*?);.*", "\\1", .data$SeqID)) %>%
-  dplyr::mutate(TaxID = as.numeric(stringr::str_extract(.data$TaxID, pattern = "^[^;]*"))) %>%
-  dplyr::mutate(Species = stringr::str_extract(.data$Species, pattern = "^[^;]*"))
+if (nrow(readr::read_delim(paste("Alignment_", output_name,
+                                 ".csv", sep = ""), "\t"))) {
+  Blast_output <- readr::read_delim(paste("Alignment_", output_name,
+                                          ".csv", sep = ""), "\t", col_names = F, col_types = readr::cols(X3 = readr::col_number())) %>%
+    magrittr::set_colnames(c("ID", "SeqID", "TaxID", "Species",
+                             "bitscore", "qcovs", "Evalue", "Pct")) %>% as.data.frame() %>%
+    dplyr::mutate(SeqID = stringr::str_replace_all(.data$SeqID,
+                                                   pattern = "\\|", replacement = ";")) %>%
+    dplyr::mutate(AccID = sub(".*?;.*?;.*?;(.*?);.*", "\\1", .data$SeqID)) %>%
+    dplyr::mutate(GiID = sub("gi;(.*?);.*","\\1", .data$SeqID)) %>%
+    dplyr::mutate(TaxID = as.numeric(stringr::str_extract(.data$TaxID,pattern = "^[^;]*"))) %>%
+    dplyr::mutate(Species = stringr::str_extract(.data$Species, pattern = "^[^;]*"))
+} else {
+  print("No alignments")
+  Blast_output <- readr::read_delim(paste("Alignment_", output_name,
+                                          ".csv", sep = ""), "\t")
+}
 }
