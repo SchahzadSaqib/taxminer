@@ -69,7 +69,12 @@ txm_lineage <- function(taxids, bindtoAcc = T) {
             .f = ~ XML::xmlValue(.x[[2]])
           ) %>%
           as.data.frame() %>%
-          dplyr::mutate(TaxId = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][[1]])) %>%
+          dplyr::mutate(
+            TaxId = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][[1]])
+            ) %>%
+          dplyr::mutate(
+            species = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][["ScientificName"]][[1]])
+            ) %>%
           dplyr::select(TaxId, everything())
 
         lineage <- lineage %>%
@@ -91,11 +96,13 @@ txm_lineage <- function(taxids, bindtoAcc = T) {
   }
   lineage <- lineage %>%
     dplyr::select(.data$TaxId, .data$superkingdom, .data$phylum, .data$class,
-                  .data$order, .data$family, .data$genus)
+                  .data$order, .data$family, .data$genus, .data$species)
 
   if (bindtoAcc) {
     taxids <- taxids %>%
-      dplyr::rename("species" = .data$Organism) %>%
+      dplyr::rename_with(~paste("species"), starts_with("Organism")) %>%
+      dplyr::select(-starts_with("species")) %>%
+      mutate(TaxId = as.character(TaxId)) %>%
       dplyr::left_join(lineage, by = "TaxId")
   } else {
     lineage
