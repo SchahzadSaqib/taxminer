@@ -27,7 +27,7 @@ utils::globalVariables(c(
 #'                        \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST command line user manual}
 #' @param do_acc_check (Logical) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
 #'                      pre-processed (blastdb_aliastool) prior to being used for restricting the database.
-#'                      Set this to TRUE is an unprocessed accession ID list is specified.
+#'                      Set this to TRUE if an unprocessed accession ID list is specified.
 #' @param show (Logical) Default FALSE. Switch from console to terminal?
 #' @param Run_Blast (Logical) Default TRUE. Set to FALSE if an existing comma-delimited alignment file is present
 #'                   in the directory and the function should be utilized to process it.
@@ -136,6 +136,8 @@ if (Run_Blast == T) {
                          " - Please check terminal for details")))
       }
     }
+  } else {
+    accession_list <- paste(accession_list, ".bsl", sep = "")
   }
 
   if (file.size(paste(output_name, ".fa", sep = "")) == 0) {
@@ -189,6 +191,7 @@ if (nrow(readr::read_delim(paste("Alignment_", output_name,
                                           ".csv", sep = ""), "\t", col_names = F, col_types = readr::cols(X3 = readr::col_number())) %>%
     magrittr::set_colnames(c("ID", "SeqID", "TaxID", "Species",
                              "bitscore", "qcovs", "Evalue", "Pct")) %>% as.data.frame() %>%
+    dplyr::filter(qcovs >= qcvg) %>%
     dplyr::mutate(SeqID = stringr::str_replace_all(.data$SeqID,
                                                    pattern = "\\|", replacement = ";")) %>%
     dplyr::mutate(AccID = sub(".*?;.*?;.*?;(.*?);.*", "\\1", .data$SeqID)) %>%
