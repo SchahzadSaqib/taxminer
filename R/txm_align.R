@@ -135,10 +135,10 @@ if (Run_Blast == T) {
                          rstudioapi::terminalExitCode(acc_check),
                          " - Please check terminal for details")))
       }
+    } else {
+      accession_list <- paste(accession_list, ".bsl", sep = "")
     }
-  } else {
-    accession_list <- paste(accession_list, ".bsl", sep = "")
-  }
+    }
 
   if (file.size(paste(output_name, ".fa", sep = "")) == 0) {
     stop(print("Empty query object provided"))
