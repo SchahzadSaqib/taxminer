@@ -144,6 +144,9 @@ if (Run_Blast == T) {
     } else {
       accession_list <- paste(accession_list, ".bsl", sep = "")
     }
+    if (!file.exists(paste(accession_list, ".bsl", sep = ""))) {
+      stop(print(paste("accession list not found in specified directory")))
+    }
     }
 
   if (file.size(paste(output_path, "/", output_name, ".fa", sep = "")) == 0) {
