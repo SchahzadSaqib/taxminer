@@ -153,7 +153,7 @@ if (Run_Blast == T) {
 
   Shell_command <- paste("blastn -task ", task, sep = "")
   database <- paste("-db ", database_path, "/", database_name, sep = "")
-  query <- paste("-query ", output_name, ".fa", sep = "")
+  query <- paste("-query ", output_path, "/", output_name, ".fa", sep = "")
   output <- paste("-out ", output_path, "/", "Alignment_", output_name, ".csv", sep = "")
   parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, sep = " ")
   accession_limit <- paste("-seqidlist", accession_list, sep = " ")
