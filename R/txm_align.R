@@ -145,7 +145,7 @@ if (Run_Blast == T) {
       }
     } else {
       accession_list <- paste(accession_list, ".bsl", sep = "")
-      if (!file.exists(paste(accession_path, "/", accession_list, ".bsl", sep = ""))) {
+      if (!file.exists(paste(accession_path, "/", accession_list, sep = ""))) {
         stop(print(paste("accession list not found in specified directory")))
       }
     }
@@ -161,7 +161,7 @@ if (Run_Blast == T) {
   query <- paste("-query ", output_path, "/", output_name, ".fa", sep = "")
   output <- paste("-out ", output_path, "/", "Alignment_", output_name, ".csv", sep = "")
   parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, sep = " ")
-  accession_limit <- paste("-seqidlist", accession_path, "/", accession_list, sep = " ")
+  accession_limit <- paste("-seqidlist ", accession_path, "/", accession_list, sep = "")
   output_format <- paste("-max_target_seqs", max_out,
                          "-outfmt '6 qacc sseqid staxids sscinames bitscore qcovs evalue pident'")
 
