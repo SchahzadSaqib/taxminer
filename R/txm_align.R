@@ -26,6 +26,7 @@ utils::globalVariables(c(
 #'                        package. Further information regarding search limitations is
 #'                        available on
 #'                        \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST command line user manual}
+#' @param accession_path (Optional) Default "." (current working directory). Specify full path to the accession list.
 #' @param do_acc_check (Logical) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
 #'                      pre-processed (blastdb_aliastool) prior to being used for restricting the database.
 #'                      Set this to TRUE if an unprocessed accession ID list is specified.
@@ -50,6 +51,7 @@ output_name = paste("Output", Sys.Date(), sep = ""),
 output_path = ".",
 threads = 1,
 accession_list = NULL,
+accession_path = ".",
 do_acc_check = F,
 show = F,
 Run_Blast = T,
@@ -118,7 +120,7 @@ if (Run_Blast == T) {
     if (do_acc_check == T) {
       # Pre-processing accession numbers list
       Command <- "blastdb_aliastool"
-      input_list <- paste("-seqid_file_in ", accession_list, sep = "")
+      input_list <- paste("-seqid_file_in ", accession_path, "/", accession_list, sep = "")
 
       Terminal_command <- paste(Command,
                                 input_list,
@@ -143,7 +145,7 @@ if (Run_Blast == T) {
       }
     } else {
       accession_list <- paste(accession_list, ".bsl", sep = "")
-      if (!file.exists(paste(accession_list, ".bsl", sep = ""))) {
+      if (!file.exists(paste(accession_path, "/", accession_list, ".bsl", sep = ""))) {
         stop(print(paste("accession list not found in specified directory")))
       }
     }
@@ -159,7 +161,7 @@ if (Run_Blast == T) {
   query <- paste("-query ", output_path, "/", output_name, ".fa", sep = "")
   output <- paste("-out ", output_path, "/", "Alignment_", output_name, ".csv", sep = "")
   parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, sep = " ")
-  accession_limit <- paste("-seqidlist", accession_list, sep = " ")
+  accession_limit <- paste("-seqidlist", accession_path, "/", accession_list, sep = " ")
   output_format <- paste("-max_target_seqs", max_out,
                          "-outfmt '6 qacc sseqid staxids sscinames bitscore qcovs evalue pident'")
 
