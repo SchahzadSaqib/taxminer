@@ -110,7 +110,7 @@ if (Run_Blast == T) {
     paste(database_path, "/taxdb.btd", sep = "")
   )
   if (file.exists(files_to_copy[1])&file.exists(files_to_copy[2])) {
-    file.copy(files_to_copy, to = output_path, overwrite = T)
+    file.copy(files_to_copy, to = ".", overwrite = T)
   } else {
     print("No taxdb files found in the databases folder. BLAST output will not contain species")
   }
