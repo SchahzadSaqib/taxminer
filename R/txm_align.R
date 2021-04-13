@@ -17,8 +17,9 @@ utils::globalVariables(c(
 #' @param task (Optional) Default "megablast".
 #' @param output_name (Optional) Default "Output" + System date.
 #'                     Specify name of the output files.
+#' @param output_path (Optional) Default "." (current working directory). Specify full output path for results.
 #' @param threads (Optional) Default 1. Number of threads assigned to BLAST alignment.
-#' @param accession_list (Optional) Default NULL. A list of accession IDs that will be
+#' @param accession_list (Optional) Default NULL. Full path to a list of accession IDs that will be
 #'                        used to restrict the BLAST database (-seqidlist), which is highly recommended
 #'                        for large databases such as "nt/nr". This can be obtained using
 #'                        the \link[taxminer]{txm_accIDs} function provided within this
@@ -46,6 +47,7 @@ task = "megablast",
 database_path = NULL,
 database_name = NULL,
 output_name = paste("Output", Sys.Date(), sep = ""),
+output_path = ".",
 threads = 1,
 accession_list = NULL,
 do_acc_check = F,
@@ -62,6 +64,10 @@ max_out = 500
 
   if (is.null(database_name)) {
     stop("Please provide the full name of the database")
+  }
+
+  if (!dir.exists(output_path)) {
+    dir.create(output_path)
   }
 
 # Reset seqs to include all ASVs
@@ -91,7 +97,7 @@ FASTA_file <- ASVs %>%
   purrr::pmap(~ paste(.x, .y, sep = "\n")) %>%
   unlist()
 
-readr::write_lines(FASTA_file, file = paste(output_name, ".fa", sep = ""))
+readr::write_lines(FASTA_file, file = paste(output_path, "/", output_name, ".fa", sep = ""))
 
 
 if (Run_Blast == T) {
@@ -102,7 +108,7 @@ if (Run_Blast == T) {
     paste(database_path, "/taxdb.btd", sep = "")
   )
   if (file.exists(files_to_copy[1])&file.exists(files_to_copy[2])) {
-    file.copy(files_to_copy, to = ".", overwrite = T)
+    file.copy(files_to_copy, to = output_path, overwrite = T)
   } else {
     print("No taxdb files found in the databases folder. BLAST output will not contain species")
   }
@@ -148,7 +154,7 @@ if (Run_Blast == T) {
   Shell_command <- paste("blastn -task ", task, sep = "")
   database <- paste("-db ", database_path, "/", database_name, sep = "")
   query <- paste("-query ", output_name, ".fa", sep = "")
-  output <- paste("-out ", "Alignment_", output_name, ".csv", sep = "")
+  output <- paste("-out ", output_path, "/", "Alignment_", output_name, ".csv", sep = "")
   parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, sep = " ")
   accession_limit <- paste("-seqidlist", accession_list, sep = " ")
   output_format <- paste("-max_target_seqs", max_out,
@@ -185,9 +191,9 @@ if (Run_Blast == T) {
 
 
 # Read in annotated list
-if (nrow(readr::read_delim(paste("Alignment_", output_name,
+if (nrow(readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
                                  ".csv", sep = ""), "\t"))) {
-  Blast_output <- readr::read_delim(paste("Alignment_", output_name,
+  Blast_output <- readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
                                           ".csv", sep = ""), "\t", col_names = F, col_types = readr::cols(X3 = readr::col_number())) %>%
     magrittr::set_colnames(c("ID", "SeqID", "TaxID", "Species",
                              "bitscore", "qcovs", "Evalue", "Pct")) %>% as.data.frame() %>%
@@ -200,7 +206,7 @@ if (nrow(readr::read_delim(paste("Alignment_", output_name,
     dplyr::mutate(Species = stringr::str_extract(.data$Species, pattern = "^[^;]*"))
 } else {
   print("No alignments")
-  Blast_output <- readr::read_delim(paste("Alignment_", output_name,
+  Blast_output <- readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
                                           ".csv", sep = ""), "\t")
 }
 }
