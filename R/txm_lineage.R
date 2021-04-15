@@ -116,11 +116,11 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
       }
     })
     if(!class(chunk_lin) == "try-error") {
-      if (i >= round(num_groups)) {
+      pb_assign$tick()
+      i <- i + 1
+      if (i > round(num_groups)) {
         message("...Done!")
       }
-      i <- i + 1
-      pb_assign$tick()
       Sys.sleep(1)
     } else {
       i <- i
@@ -134,10 +134,11 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
   if (savedata) {
     if (!is.null(lineage)) {
       if (!is.na(Precomp_tbl)) {
-        if (!is.null(AccIDs_to_src)) {
+        if (!is.null(TaxID_to_src)) {
           print("Writing new data to Pre-compiled dataset")
           Precomp_full <- readRDS(Precomp_tbl) %>%
             dplyr::bind_rows(lineage) %>%
+            dplyr::arrange(TaxId) %>%
             saveRDS(file = Precomp_tbl)
         }
       } else {
@@ -160,7 +161,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
       dplyr::rename_with(~paste("species"), starts_with("Organism")) %>%
       dplyr::select(-starts_with("species")) %>%
       mutate(TaxId = as.character(TaxId)) %>%
-      dplyr::left_join(lineage, by = "TaxId")
+      dplyr::inner_join(lineage, by = "TaxId")
   } else {
     lineage <- lineage
   }
