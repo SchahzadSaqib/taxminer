@@ -52,7 +52,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
   if (nrow(TaxID_to_src) > 0) {
     if (is.na(Precomp_tbl)) {
       print(paste("No dataset provided -", nrow(TaxID_to_src),
-                  "accession ids will be searched for",
+                  "taxids will be searched for",
                   sep = " "
       ))
     }
