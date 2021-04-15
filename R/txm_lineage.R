@@ -34,7 +34,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
   if (!is.na(Precomp_tbl)) {
     print("Reading in dataset and searching for existing lineage")
     Precomp_tbl_sub <- readRDS(Precomp_tbl) %>%
-      dplyr::right_join(TaxID_to_src, by = "TaxId")
+      dplyr::inner_join(TaxID_to_src, by = "TaxId")
 
     TaxID_to_src <- TaxID_to_src %>%
       dplyr::filter(!.data$TaxId %in% Precomp_tbl_sub$TaxId) %>%
