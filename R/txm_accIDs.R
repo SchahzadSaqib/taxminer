@@ -39,7 +39,7 @@ txm_accIDs <- function(
   message(paste("Found ", AccIDs_esearch$count, " IDs", sep = ""))
   start_chunk <- 0
   pb_assign <- progress::progress_bar$new(
-    format = "  downloading [:bar] :current/:total (:percent) eta: :eta elasped: :elapsed",
+    format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
     total = total_ids/10000, clear = FALSE, width= 60)
   while (start_chunk <= total_ids) {
     seqname <- out_name
