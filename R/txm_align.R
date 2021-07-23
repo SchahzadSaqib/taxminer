@@ -160,7 +160,7 @@ if (Run_Blast == T) {
   database <- paste("-db ", database_path, "/", database_name, sep = "")
   query <- paste("-query ", output_path, "/", output_name, ".fa", sep = "")
   output <- paste("-out ", output_path, "/", "Alignment_", output_name, ".csv", sep = "")
-  parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, sep = " ")
+  parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, "-mt_mode 1", sep = " ")
   accession_limit <- paste("-seqidlist ", accession_path, "/", accession_list, sep = "")
   output_format <- paste("-max_target_seqs", max_out,
                          "-outfmt '6 qacc sseqid staxids sscinames bitscore qcovs evalue pident'")
