@@ -4,13 +4,27 @@
 \alias{txm_lineage}
 \title{Extract lineage}
 \usage{
-txm_lineage(taxids, bindtoAcc = T)
+txm_lineage(
+  taxids,
+  bindtoAcc = T,
+  Precomp_tbl = NA,
+  Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
+  savedata = T
+)
 }
 \arguments{
 \item{taxids}{(Required) Output table obtained from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with
 a single column named "TaxID" and optionally a second column named "AccID".}
 
 \item{bindtoAcc}{(Logical) Default TRUE. Bind lineage to accession IDs.}
+
+\item{Precomp_tbl}{(Optional) Default NA. Specify the name of the pre-compiled database
+present within the directory.}
+
+\item{Precomp_tbl_assign}{(Optional) Default Dataset + system date. Name of a new compiled database
+to be assigned}
+
+\item{savedata}{(Logical) Default TRUE. Should a compiled database be saved to directory?}
 }
 \description{
 Obtain full lineage from taxonomic IDs. Splits TaxIDs into batches of 200 and uses

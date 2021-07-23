@@ -8,11 +8,13 @@ txm_align(
   input,
   previous_run = NULL,
   task = "megablast",
-  database_path = "~/Documents/NCBI_databases/16S",
-  database_name = "16S_ribosomal_RNA",
+  database_path = NULL,
+  database_name = NULL,
   output_name = paste("Output", Sys.Date(), sep = ""),
+  output_path = ".",
   threads = 1,
-  accession_list = "Bacteria_noEnv.seq",
+  accession_list = NULL,
+  accession_path = ".",
   do_acc_check = F,
   show = F,
   Run_Blast = T,
@@ -29,15 +31,19 @@ txm_align(
 
 \item{task}{(Optional) Default "megablast".}
 
-\item{database_path, database_name}{(Required) Full path and name for a local BLAST
+\item{database_path}{(Required) Full path for local BLAST
 database being used for alignment.}
+
+\item{database_name}{(Required) Name of BLAST database.}
 
 \item{output_name}{(Optional) Default "Output" + System date.
 Specify name of the output files.}
 
+\item{output_path}{(Optional) Default "." (current working directory). Specify full output path for results.}
+
 \item{threads}{(Optional) Default 1. Number of threads assigned to BLAST alignment.}
 
-\item{accession_list}{(Optional) Default NULL. A list of accession IDs that will be
+\item{accession_list}{(Optional) Default NULL. Full path to a list of accession IDs that will be
 used to restrict the BLAST database (-seqidlist), which is highly recommended
 for large databases such as "nt/nr". This can be obtained using
 the \link[taxminer]{txm_accIDs} function provided within this
@@ -45,9 +51,11 @@ package. Further information regarding search limitations is
 available on
 \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST command line user manual}}
 
+\item{accession_path}{(Optional) Default "." (current working directory). Specify full path to the accession list.}
+
 \item{do_acc_check}{(Logical) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
 pre-processed (blastdb_aliastool) prior to being used for restricting the database.
-Set this to TRUE is an unprocessed accession ID list is specified.}
+Set this to TRUE if an unprocessed accession ID list is specified.}
 
 \item{show}{(Logical) Default FALSE. Switch from console to terminal?}
 

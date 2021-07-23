@@ -10,8 +10,9 @@ utils::globalVariables(c(
 #'
 #' @name txm_align
 #' @param input (Required) All input types accepted by \link[dada2]{getSequences}.
-#' @param database_path,database_name (Required) Full path and name for a local BLAST
-#'                                     database being used for alignment.
+#' @param database_path (Required) Full path for local BLAST
+#'                                 database being used for alignment.
+#' @param database_name (Required) Name of BLAST database.
 #' @param previous_run (Optional) Default NULL. Remove previously aligned sequences
 #'                     (must contain valid IDs)
 #' @param task (Optional) Default "megablast".
@@ -104,13 +105,13 @@ readr::write_lines(FASTA_file, file = paste(output_path, "/", output_name, ".fa"
 
 if (Run_Blast == T) {
 
-  # Moving file to database folder
+  # Move taxdb files from database folder to the query fasta location to ensure species assignment
   files_to_copy <- c(
     paste(database_path, "/taxdb.bti", sep = ""),
     paste(database_path, "/taxdb.btd", sep = "")
   )
   if (file.exists(files_to_copy[1])&file.exists(files_to_copy[2])) {
-    file.copy(files_to_copy, to = ".", overwrite = T)
+    file.copy(files_to_copy, to = output_path, overwrite = T)
   } else {
     print("No taxdb files found in the databases folder. BLAST output will not contain species")
   }
