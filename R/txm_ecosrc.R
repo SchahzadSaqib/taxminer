@@ -58,7 +58,8 @@ txm_ecosrc <- function(
 
   ##### Extract distinct IDs from the input table #####
   AccIDs_to_src <- input_table %>%
-    dplyr::distinct(.data$AccID)
+    dplyr::distinct(.data$AccID) %>%
+    dplyr::filter(str_detect(AccID, "\\."))
 
   ##### Read in pre-compiled database #####
   if (!is.na(Precomp_tbl)) {
