@@ -18,8 +18,8 @@
 txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
                         Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""), savedata = T) {
 
-  if (!any(names(taxids) %in% "TaxId")) {
-    stop("No column named 'TaxId' - please provide a valid input column")
+  if (!any(names(taxids) %in% "TaxID")) {
+    stop("No column named 'TaxID' - please provide a valid input column")
   }
 
   if (bindtoAcc&!any(names(taxids) %in% "AccID")) {
@@ -28,18 +28,18 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
 
   ##### Lineage #####
   TaxID_to_src <- taxids %>%
-    dplyr::distinct(TaxId)
+    dplyr::distinct(TaxID)
 
   ##### Read in pre-compiled database #####
   if (!is.na(Precomp_tbl)) {
     print("Reading in dataset and searching for existing lineage")
     Precomp_tbl_sub <- readRDS(Precomp_tbl) %>%
-      dplyr::inner_join(TaxID_to_src, by = "TaxId")
+      dplyr::inner_join(TaxID_to_src, by = "TaxID")
 
     TaxID_to_src <- TaxID_to_src %>%
-      dplyr::filter(!.data$TaxId %in% Precomp_tbl_sub$TaxId) %>%
+      dplyr::filter(!.data$TaxID %in% Precomp_tbl_sub$TaxID) %>%
       dplyr::ungroup() %>%
-      dplyr::distinct(.data$TaxId)
+      dplyr::distinct(.data$TaxID)
     print(paste(nrow(TaxID_to_src), "of",
                 sum(nrow(Precomp_tbl_sub), nrow(TaxID_to_src)),
                 "will be searched for",
@@ -103,12 +103,12 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
           ) %>%
           as.data.frame() %>%
           dplyr::mutate(
-            TaxId = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][[1]])
+            TaxID = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][[1]])
             ) %>%
           dplyr::mutate(
             species = XML::xmlValue(XML::xmlRoot(TaxIDs_fetch)[[j]][["ScientificName"]][[1]])
             ) %>%
-          dplyr::select(TaxId, everything())
+          dplyr::select(TaxID, tidyselect::everything())
 
         lineage <- lineage %>%
           dplyr::bind_rows(xml_lineage)
@@ -128,7 +128,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
     }
   }
   lineage <- lineage %>%
-    dplyr::select(.data$TaxId, .data$superkingdom, .data$phylum, .data$class,
+    dplyr::select(.data$TaxID, .data$superkingdom, .data$phylum, .data$class,
                   .data$order, .data$family, .data$genus, .data$species)
 
   if (savedata) {
@@ -138,7 +138,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
           print("Writing new data to Pre-compiled dataset")
           Precomp_full <- readRDS(Precomp_tbl) %>%
             dplyr::bind_rows(lineage) %>%
-            dplyr::arrange(TaxId) %>%
+            dplyr::arrange(TaxID) %>%
             saveRDS(file = Precomp_tbl)
         }
       } else {
@@ -158,10 +158,10 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
 
   if (bindtoAcc) {
     taxids <- taxids %>%
-      dplyr::rename_with(~paste("species"), starts_with("Organism")) %>%
-      dplyr::select(-starts_with("species")) %>%
-      mutate(TaxId = as.character(TaxId)) %>%
-      dplyr::inner_join(lineage, by = "TaxId")
+      dplyr::rename_with(~paste("species"), tidyselect::starts_with("Organism")) %>%
+      dplyr::select(-tidyselect::starts_with("species")) %>%
+      dplyr::mutate(TaxID = as.character(TaxID)) %>%
+      dplyr::inner_join(lineage, by = "TaxID")
   } else {
     lineage <- lineage
   }

@@ -23,7 +23,8 @@ Imports:
     progress,
     readr,
     rstudioapi,
-    dada2
+    dada2,
+    here
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

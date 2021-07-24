@@ -28,6 +28,11 @@ collapse_multi <- function(x) {
   }
 }
 
+
+#' Word banks
+#'
+#' Full list of word banks being used for text mining based filtration
+#'
 #' @export
 Word_banks <- list(
   human = c(

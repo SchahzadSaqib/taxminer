@@ -64,7 +64,7 @@ txm_ecosrc <- function(
   if (!is.na(Precomp_tbl)) {
     print("Reading in dataset and searching for existing Accession ids")
     Precomp_tbl_sub <- readRDS(Precomp_tbl) %>%
-      dplyr::right_join(AccIDs_to_src, by = "AccID")
+      dplyr::inner_join(AccIDs_to_src, by = "AccID")
 
     AccIDs_to_src <- AccIDs_to_src %>%
       dplyr::filter(!.data$AccID %in% Precomp_tbl_sub$AccID) %>%
@@ -188,9 +188,11 @@ txm_ecosrc <- function(
           purrr::map_df(.f = ~.x) %>%
           {
             if (nrow(.) > 0)
-              tidyr::gather(., key = "AccID", value = "PMIDs") %>%
+              tidyr::pivot_longer(., cols = tidyselect::everything(),
+                                  names_to = "AccID",
+                                  values_to = "PMIDs") %>%
               dplyr::group_by(.data$AccID) %>%
-              dplyr::distinct(PMIDs, .keep_all = T)
+              dplyr::distinct(.data$PMIDs, .keep_all = T)
           }
       }
       if (!is.null(AccIDs_elink)) {
@@ -279,7 +281,7 @@ txm_ecosrc <- function(
               Abstract, sep = "")
             ) %>%
             dplyr::bind_cols(PMIDs_MESH) %>%
-            dplyr::select(any_of(c("PMIDs", "Article", "MeshHeadingList")))
+            dplyr::select(dplyr::any_of(c("PMIDs", "Article", "MeshHeadingList")))
 
           PMIDs_data <- PMIDs_data %>%
             dplyr::bind_rows(Title_Abstract) %>%
@@ -327,6 +329,7 @@ txm_ecosrc <- function(
             print("Writing new data to Pre-compiled dataset")
             Precomp_full <- readRDS(Precomp_tbl) %>%
               dplyr::bind_rows(DocSum) %>%
+              dplyr::distinct(.data$AccID, .keep_all = T) %>%
               saveRDS(file = Precomp_tbl)
           }
         } else {
@@ -345,6 +348,26 @@ txm_ecosrc <- function(
 
   # Delete temp files
   unlink("temp_files", recursive = T)
+
+  #  Clean and compile final dataset
+  DocSum <- DocSum %>%
+    {
+      if ("TaxID" %in% names(input_table))
+        dplyr::select(., -.data$TaxId)
+      else
+        dplyr::rename(., "TaxID" = .data$TaxId)
+    } %>%
+    dplyr::inner_join(input_table) %>%
+    {
+      if ("Species" %in% names(.))
+        dplyr::select(., .data$ID, .data$Species, -.data$Organism, tidyselect::everything())
+      else
+        dplyr::rename(., "Species" = Organism)
+    } %>%
+    dplyr::arrange(.data$ID) %>%
+    dplyr::select(.data$ID, .data$AccID, .data$Species, tidyselect::everything())
+
+
 
 
   if (do_filter) {
@@ -381,7 +404,7 @@ txm_ecosrc <- function(
 
     ##### Filtration #####
 
-    Data_to_filt <- DocSum %>%
+    Data_extrt <- DocSum %>%
       dplyr::mutate_if(is.factor, as.character) %>%
       dplyr::ungroup() %>%
       dplyr::mutate(host = trimws(stringr::str_extract(
@@ -396,6 +419,7 @@ txm_ecosrc <- function(
       tidyr::unite("pooled_data", c(.data$MeshHeadingList, .data$Article, .data$meta),
                    na.rm = T)
 
+    Data_to_filt <- Data_extrt
 
     ##### Host filtration #####
     if (!is.na(Host_word_bank[1])) {
@@ -414,31 +438,31 @@ txm_ecosrc <- function(
             host, pattern = stringr::regex(as.character(unlist(Host_word_bank[i])),
                                            ignore_case = T
             )
-          )) %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
-          dplyr::select(ID, everything()) %>%
-          dplyr::arrange(ID)
+          ))
 
         Host_data_tokeep <- Host_data_tokeep %>%
           dplyr::bind_rows(Host_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
-          dplyr::select(ID, everything()) %>%
-          dplyr::arrange(ID) %>%
-          dplyr::filter(!ID %in% Host_data_tokeep$ID) %>%
-          dplyr::distinct(AccID, .keep_all = T) %>%
-          dplyr::select(-ID)
+          dplyr::filter(!.data$ID %in% Host_data_tokeep$ID) %>%
+          dplyr::group_by(.data$ID, .data$AccID) %>%
+          dplyr::distinct(.data$AccID, .keep_all = T) %>%
+          dplyr::ungroup()
 
         i <- i + 1
       }
       Host_data_tokeep <- Host_data_tokeep %>%
-        dplyr::arrange(ID) %>%
+        dplyr::arrange(.data$ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
       Data_to_filt <- Host_data_tokeep %>%
-        dplyr::distinct(AccID, .keep_all = T) %>%
-        dplyr::select(-ID)
+        dplyr::group_by(.data$ID, .data$AccID) %>%
+        dplyr::distinct(.data$AccID, .keep_all = T) %>%
+        dplyr::ungroup()
+
+      discarded_host <- Data_extrt %>%
+        dplyr::filter(!AccID %in% Data_to_filt$AccID)
+      base::assign("discarded_host", discarded_host, .GlobalEnv)
     }
 
 
@@ -455,33 +479,36 @@ txm_ecosrc <- function(
                                         ignore_case = T), negate = T) |
               stringr::str_detect(pooled_data, "ISHAM") |
               stringr::str_detect(host, as.character(unlist(Host_word_bank)))
-          ) %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID")) %>%
-          dplyr::select(ID, everything()) %>%
-          dplyr::arrange(ID)
+          )
 
         Negate_data_tokeep <- Negate_data_tokeep %>%
           dplyr::bind_rows(Negate_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::left_join(
-            dplyr::select(input_table,
-                          c(ID, .data$AccID)), by = c("AccID")) %>%
-          dplyr::select(ID, everything()) %>%
-          dplyr::arrange(ID) %>%
-          dplyr::filter(!ID %in% Negate_data_tokeep$ID) %>%
-          dplyr::distinct(AccID, .keep_all = T) %>%
-          dplyr::select(-ID)
+          dplyr::filter(!.data$ID %in% Negate_data_tokeep$ID) %>%
+          dplyr::group_by(.data$ID, .data$AccID) %>%
+          dplyr::distinct(.data$AccID, .keep_all = T) %>%
+          dplyr::ungroup()
 
         i <- i + 1
       }
       Negate_data_tokeep <- Negate_data_tokeep %>%
-        dplyr::arrange(ID) %>%
+        dplyr::arrange(.data$ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
       Data_to_filt <- Negate_data_tokeep %>%
-        dplyr::distinct(AccID, .keep_all = T) %>%
-        dplyr::select(-ID)
+        dplyr::group_by(.data$ID, .data$AccID) %>%
+        dplyr::distinct(.data$AccID, .keep_all = T) %>%
+        dplyr::ungroup()
+
+      discarded_negate <- Data_extrt %>%
+        {
+          if (base::exists("discarded_host") == T)
+            dplyr::filter(., !.$AccID %in% discarded_host$AccID)
+          else .
+        } %>%
+        dplyr::filter(!AccID %in% Data_to_filt$AccID)
+      base::assign("discarded_negate", discarded_negate, .GlobalEnv)
     }
 
     ##### Site filtration #####
@@ -501,21 +528,16 @@ txm_ecosrc <- function(
             Isolation_source, pattern = stringr::regex(as.character(unlist(Site_word_bank[i])),
                                                        ignore_case = T
             )
-          )) %>%
-          dplyr::left_join(dplyr::select(input_table, c(ID, .data$AccID)), by = c("AccID"))
+          ))
 
         Site_data_tokeep <- Site_data_tokeep %>%
           dplyr::bind_rows(Site_data_filt)
 
         Data_to_filt <- Data_to_filt %>%
-          dplyr::left_join(
-            dplyr::select(input_table,
-                          c(ID, .data$AccID)), by = c("AccID")) %>%
-          dplyr::select(ID, everything()) %>%
-          dplyr::arrange(ID) %>%
-          dplyr::filter(!ID %in% Site_data_tokeep$ID) %>%
-          dplyr::distinct(AccID, .keep_all = T) %>%
-          dplyr::select(-ID)
+          dplyr::filter(!.data$ID %in% Site_data_tokeep$ID) %>%
+          dplyr::group_by(.data$ID, .data$AccID) %>%
+          dplyr::distinct(.data$AccID, .keep_all = T) %>%
+          dplyr::ungroup()
 
         i <- i + 1
       }
@@ -523,13 +545,27 @@ txm_ecosrc <- function(
         dplyr::arrange(.data$ID) %>%
         dplyr::select(.data$ID, .data$AccID, tidyselect::everything())
 
-      Data_to_filt <- Site_data_tokeep
+      discarded_site <- Data_extrt %>%
+        {
+          if (base::exists("discarded_host") == T)
+            dplyr::filter(., !.$AccID %in% discarded_host$AccID)
+          else .
+        } %>%
+        {
+          if (base::exists("discarded_negate") == T)
+            dplyr::filter(., !.$AccID %in% discarded_negate$AccID)
+          else .
+        } %>%
+        dplyr::filter(!AccID %in% Site_data_tokeep$AccID) %>%
+        dplyr::filter(!ID %in% Site_data_tokeep$ID)
+      base::assign("discarded_site", discarded_site, .GlobalEnv)
+
+      Data_to_filt <- Site_data_tokeep %>%
+        dplyr::group_by(.data$ID, .data$AccID) %>%
+        dplyr::distinct(.data$AccID, .keep_all = T) %>%
+        dplyr::ungroup()
     }
   } else {
-    DocSum <- DocSum %>%
-      dplyr::mutate_if(is.factor, as.character) %>%
-      dplyr::ungroup() %>%
-      tidyr::unite("pooled_data", c(.data$MeshHeadingList, .data$Article, .data$meta),
-                   na.rm = T)
+    DocSum <- DocSum
   }
 }
