@@ -146,7 +146,7 @@ if (Run_Blast == T) {
       }
     } else {
       accession_list <- paste(accession_list, ".bsl", sep = "")
-      if (!file.exists(paste(accession_path, "/", accession_list, sep = ""))) {
+      if (!file.exists(here::here(accession_path, accession_list))) {
         stop(print(paste("accession list not found in specified directory")))
       }
     }

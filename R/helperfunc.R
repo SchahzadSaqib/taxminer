@@ -28,6 +28,7 @@ collapse_multi <- function(x) {
   }
 }
 
+#' @export
 Word_banks <- list(
   human = c(
     "human", "humans", "men", "man", "woman", "women", "girl",

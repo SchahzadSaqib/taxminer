@@ -19,7 +19,6 @@ utils::globalVariables(c(
 #' @param filter_host (Optional) Default NA. Filter annotations by host
 #' @param filter_site (Optional) Default NA. Filter annotations by body site or environment.
 #' @param filter_negate (Optional) Default NA. Disregard annotations that contain these terms.
-#' @param save_file_name (Optional) Default TextmineR + system date. Assign name to output file
 #' @param do_filter (Logical) Default TRUE. Perform filtration using the word banks. If FALSE the output will
 #'                   contain all accession IDs and the extracted information associated to them.
 #' @param Precomp_tbl (Optional) Default NA. Specify the name of the pre-compiled database
@@ -34,7 +33,6 @@ txm_ecosrc <- function(
   filter_host = NA,
   filter_site = NA,
   filter_negate = NA,
-  save_file_name = paste("TextmineR_", Sys.Date(), sep = ""),
   do_filter = T,
   Precomp_tbl = NA,
   Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
@@ -97,9 +95,11 @@ txm_ecosrc <- function(
       tidyr::nest() %>%
       dplyr::pull()
 
-
+    # Create temp files directory
+    dir.create(here::here("temp_files"), recursive = T)
 
     ##### Accession ID retrieval #####
+    if (!file.exists(here::here("temp_files", "AccID_temp.rds"))) {
     i <- 1
     DocSum <- data.frame()
     pb_assign <- progress::progress_bar$new(
@@ -145,6 +145,13 @@ txm_ecosrc <- function(
       }
     }
 
+
+    # write temp file
+    readr::write_rds(DocSum, file = here::here("temp_files", "AccID_temp.rds"))
+    } else {
+      DocSum <- readr::read_rds(here::here("temp_files", "AccID_temp.rds"))
+    }
+
     # Clean final list
     DocSum <- DocSum %>%
       dplyr::mutate(meta = Clean_list(DocSum)) %>%
@@ -153,6 +160,7 @@ txm_ecosrc <- function(
 
 
     ###### Elink extraction ######
+    if (!file.exists(here::here("temp_files", "PMIDS_temp.rds"))) {
     i <- 1
     PMIDs <- data.frame()
     pb_assign <- progress::progress_bar$new(
@@ -200,6 +208,12 @@ txm_ecosrc <- function(
         i <- i
         Sys.sleep(1)
       }
+    }
+
+    # write temp PMIDs
+    readr::write_rds(PMIDs, file = here::here("temp_files", "PMIDs_temp.rds"))
+    } else {
+      PMIDs <- readr::read_rds(here::here("temp_files", "PMIDs_temp.rds"))
     }
 
     ##### PubMed data #####
@@ -328,6 +342,9 @@ txm_ecosrc <- function(
   } else {
     DocSum <- Precomp_tbl_sub
   }
+
+  # Delete temp files
+  unlink("temp_files", recursive = T)
 
 
   if (do_filter) {

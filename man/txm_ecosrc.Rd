@@ -9,7 +9,6 @@ txm_ecosrc(
   filter_host = NA,
   filter_site = NA,
   filter_negate = NA,
-  save_file_name = paste("TextmineR_", Sys.Date(), sep = ""),
   do_filter = T,
   Precomp_tbl = NA,
   Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
@@ -30,8 +29,6 @@ A data.frame with at least 3 columns
 \item{filter_site}{(Optional) Default NA. Filter annotations by body site or environment.}
 
 \item{filter_negate}{(Optional) Default NA. Disregard annotations that contain these terms.}
-
-\item{save_file_name}{(Optional) Default TextmineR + system date. Assign name to output file}
 
 \item{do_filter}{(Logical) Default TRUE. Perform filtration using the word banks. If FALSE the output will
 contain all accession IDs and the extracted information associated to them.}
