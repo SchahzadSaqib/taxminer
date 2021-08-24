@@ -128,6 +128,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
     }
   }
   lineage <- lineage %>%
+    dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
     dplyr::select(.data$TaxID, .data$superkingdom, .data$phylum, .data$class,
                   .data$order, .data$family, .data$genus, .data$species)
 
