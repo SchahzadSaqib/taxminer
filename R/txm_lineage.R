@@ -160,7 +160,7 @@ txm_lineage <- function(taxids, bindtoAcc = T, Precomp_tbl = NA,
     taxids <- taxids %>%
       dplyr::rename_with(~paste("species"), tidyselect::starts_with("Organism")) %>%
       dplyr::select(-tidyselect::starts_with("species")) %>%
-      dplyr::mutate(TaxID = as.character(TaxID)) %>%
+      dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
       dplyr::inner_join(lineage, by = "TaxID")
   } else {
     lineage <- lineage
