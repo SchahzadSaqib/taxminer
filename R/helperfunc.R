@@ -55,7 +55,7 @@ Word_banks <- list(
   ),
   gut = c(
     "gut", "GI tract", "gastrointestinal", "intestine", "intestinal",
-    "urinary tract", "bowel", "abdomen", "abdominal",
+    "urinary tract", "urine", "bowel", "abdomen", "abdominal",
     "stomach", "feces", "faeces", "stool", "fecal", "colon", "ileum"
   ),
   skin = c(
@@ -70,7 +70,7 @@ Word_banks <- list(
   clinical = c(
     "clinical sample", "clinical samples", "clinical strain",
     "clinical strains", "clinical isolate", "clinical isolates",
-    "medical strain", "medical strains", "human sources",
+    "medical strain", "medical strains", "human sources", "blood",
     "Isolation_source: clinical"
   ),
   non_human = c(

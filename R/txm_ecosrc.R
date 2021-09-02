@@ -160,13 +160,20 @@ txm_ecosrc <- function(
 
 
 
-    ###### Elink extraction ######
-    if (!file.exists(here::here("temp_files", "PMIDS_temp.rds"))) {
-    i <- 1
-    PMIDs <- data.frame()
-    pb_assign <- progress::progress_bar$new(
-      format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
-      total = round(num_groups), clear = FALSE, width= 60)
+    if (file.exists(here::here("temp_files", "PMIDs_temp.rds"))) {
+      PMIDs <- readr::read_rds(here::here("temp_files", "PMIDs_temp.rds"))
+      i <- readr::read_rds(here::here("temp_files", "PMIDs_step.rds"))
+      pb_assign <- readr::read_rds(here::here("temp_files", "pb_assign.rds"))
+    } else {
+      i <- 1
+      PMIDs <- data.frame()
+      pb_assign <- progress::progress_bar$new(
+        format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
+        total = round(num_groups), clear = FALSE, width= 60)
+    }
+    if (i > round(num_groups)) {
+      message("Done!")
+    } else {
     print("Retrieving PubMed links")
     while (i <= round(num_groups)) {
       chunk_link <- try({
@@ -199,26 +206,30 @@ txm_ecosrc <- function(
       if (!is.null(AccIDs_elink)) {
         PMIDs <- PMIDs %>%
           dplyr::bind_rows(AccIDs_elink)
-      }
-        i <- i + 1
-        pb_assign$tick()
-        if (i > round(num_groups)) {
-          message("Done!")
+
+          # write temp PMIDs
+            readr::write_rds(PMIDs, file = here::here("temp_files", "PMIDs_temp.rds"))
+          }
+          i <- i + 1
+          # write temp step
+          readr::write_rds(i, file = here::here("temp_files", "PMIDs_step.rds"))
+          pb_assign$tick()
+          
+          # write temp progress bar environment
+          readr::write_rds(pb_assign, here::here("temp_files", "pb_assign.rds"))
+
+          if (i > round(num_groups)) {
+            message("Done!")
+          }
+          Sys.sleep(1)
+        } else {
+          print("trying again")
+          i <- i
+          Sys.sleep(1)
         }
-        Sys.sleep(1)
-      } else {
-        print("trying again")
-        i <- i
-        Sys.sleep(1)
       }
     }
-
-    # write temp PMIDs
-    readr::write_rds(PMIDs, file = here::here("temp_files", "PMIDs_temp.rds"))
-    } else {
-      PMIDs <- readr::read_rds(here::here("temp_files", "PMIDs_temp.rds"))
-    }
-
+    
     ##### PubMed data #####
     if (nrow(PMIDs) > 0) {
       PMIDs_to_src <- PMIDs %>%
