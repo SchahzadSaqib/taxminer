@@ -100,7 +100,11 @@ FASTA_file <- ASVs %>%
   purrr::pmap(~ paste(.x, .y, sep = "\n")) %>%
   unlist()
 
-readr::write_lines(FASTA_file, file = paste(output_path, "/", output_name, ".fa", sep = ""))
+readr::write_lines(FASTA_file, 
+                   file = paste(here::here(output_path, 
+                                           output_name), 
+                                ".fa", 
+                                sep = ""))
 
 
 if (Run_Blast == T) {
@@ -111,7 +115,7 @@ if (Run_Blast == T) {
     paste(database_path, "/taxdb.btd", sep = "")
   )
   if (file.exists(files_to_copy[1])&file.exists(files_to_copy[2])) {
-    file.copy(files_to_copy, to = output_path, overwrite = T)
+    file.copy(files_to_copy, to = here::here(), overwrite = T)
   } else {
     print("No taxdb files found in the databases folder. BLAST output will not contain species")
   }
@@ -121,13 +125,16 @@ if (Run_Blast == T) {
     if (do_acc_check == T) {
       # Pre-processing accession numbers list
       Command <- "blastdb_aliastool"
-      input_list <- paste("-seqid_file_in ", accession_path, "/", accession_list, sep = "")
+      input_list <- paste("-seqid_file_in ", here::here(accession_path,
+                                                        accession_list), 
+                          sep = "")
 
       Terminal_command <- paste(Command,
                                 input_list,
                                 sep = " ")
 
-      acc_check <- rstudioapi::terminalExecute(Terminal_command, show = show)
+      acc_check <- rstudioapi::terminalExecute(Terminal_command, 
+                                               show = show)
 
       # Keep R session busy until terminal command is completed
       while (is.null(rstudioapi::terminalExitCode(acc_check))) {
@@ -152,17 +159,40 @@ if (Run_Blast == T) {
     }
     }
 
-  if (file.size(paste(output_path, "/", output_name, ".fa", sep = "")) == 0) {
+  if (file.size(paste(here::here(output_path, 
+                                 output_name), 
+                      ".fa", 
+                      sep = "")) == 0) {
     stop(print("Empty query object provided"))
   }
 
 
   Shell_command <- paste("blastn -task ", task, sep = "")
-  database <- paste("-db ", database_path, "/", database_name, sep = "")
-  query <- paste("-query ", output_path, "/", output_name, ".fa", sep = "")
-  output <- paste("-out ", output_path, "/", "Alignment_", output_name, ".csv", sep = "")
-  parameters <- paste("-num_threads", threads, "-perc_identity", pctidt, sep = " ")
-  accession_limit <- paste("-seqidlist ", accession_path, "/", accession_list, sep = "")
+  database <- paste("-db ", 
+                    here::here(database_path, 
+                               database_name), 
+                    sep = "")
+  query <- paste("-query ", 
+                 here::here(output_path,
+                            paste(output_name, 
+                                  ".fa", 
+                                  sep = ""), 
+                            sep = ""))
+  output <- paste("-out ", here::here(output_path,
+                  paste("Alignment_",
+                        output_name,
+                        ".csv",
+                        sep = "")), 
+                  sep = "")
+  parameters <- paste("-num_threads", 
+                      threads, 
+                      "-perc_identity", 
+                      pctidt, 
+                      sep = " ")
+  accession_limit <- paste("-seqidlist ", 
+                           here::here(accession_path, 
+                                      accession_list), 
+                           sep = "")
   output_format <- paste("-max_target_seqs", max_out,
                          "-outfmt '6 qacc sseqid staxids sscinames bitscore qcovs evalue pident'")
 
@@ -196,11 +226,23 @@ if (Run_Blast == T) {
 }
 
 
+# Define path for annotated table
+align_path <- here::here(output_path, 
+                         paste("Alignment_", 
+                               output_name,
+                               ".csv", 
+                               sep = ""))
+
 # Read in annotated list
-if (nrow(readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
-                                 ".csv", sep = ""), "\t"))) {
-  Blast_output <- readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
-                                          ".csv", sep = ""), "\t", col_names = F, col_types = readr::cols(X3 = readr::col_number())) %>%
+if (nrow(readr::read_delim(align_path, "\t"))) > 0) {
+  Blast_output <- readr::read_delim(paste(here::here(output_path, 
+                                                     paste("Alignment_", 
+                                                           output_name,
+                                                           ".csv", 
+                                                           sep = ""))), 
+                                    "\t", 
+                                    col_names = F, 
+                                    col_types = readr::cols(X3 = readr::col_number())) %>%
     magrittr::set_colnames(c("ID", "SeqID", "TaxID", "Species",
                              "bitscore", "qcovs", "Evalue", "Pct")) %>% as.data.frame() %>%
     dplyr::filter(qcovs >= qcvg) %>%
@@ -212,7 +254,10 @@ if (nrow(readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
     dplyr::mutate(Species = stringr::str_extract(.data$Species, pattern = "^[^;]*"))
 } else {
   print("No alignments")
-  Blast_output <- readr::read_delim(paste(output_path, "/", "Alignment_", output_name,
-                                          ".csv", sep = ""), "\t")
+  Blast_output <- readr::read_delim(paste(here::here(output_path, 
+                                                     paste("Alignment_", 
+                                                           output_name,
+                                                           ".csv", 
+                                                           sep = ""))), "\t")
 }
 }
