@@ -234,7 +234,7 @@ align_path <- here::here(output_path,
                                sep = ""))
 
 # Read in annotated list
-if (nrow(readr::read_delim(align_path, "\t"))) > 0) {
+if (nrow(readr::read_delim(align_path, "\t")) > 0) {
   Blast_output <- readr::read_delim(paste(here::here(output_path, 
                                                      paste("Alignment_", 
                                                            output_name,
