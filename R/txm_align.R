@@ -176,8 +176,8 @@ if (Run_Blast == T) {
                  here::here(output_path,
                             paste(output_name, 
                                   ".fa", 
-                                  sep = ""), 
-                            sep = ""))
+                                  sep = "")), 
+                            sep = "")
   output <- paste("-out ", here::here(output_path,
                   paste("Alignment_",
                         output_name,
