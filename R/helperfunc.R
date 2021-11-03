@@ -74,7 +74,7 @@ Word_banks <- list(
     "Isolation_source: clinical"
   ),
   non_human = c(
-    "Veterinary", "Animal clinic", "chicken",
+    "Veterinary", "Animal clinic", "chicken", "man-made", "human-made"
     "Horticulture", "plant", "murine", "mice",
     "conservation science and restoration", "DOVE"
   )
