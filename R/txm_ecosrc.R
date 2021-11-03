@@ -43,15 +43,18 @@ txm_ecosrc <- function(
     stop("Empty Data.frame -  Aborting Relevance filtration")
   }
 
-  filt_split <- unlist(stringr::str_split(c(filter_host, filter_site, filter_negate), pattern = "\\+"))
+  filt_split <- unlist(stringr::str_split(c(filter_host, 
+                                            filter_site, 
+                                            filter_negate), 
+                                          pattern = "\\+"))
   filt_split <- filt_split[!is.na(filt_split)]
 
-  i <- 1
-  while(i <= length(filt_split)) {
-    if (!filt_split[i] %in% names(Word_banks)) {
-      stop(paste("Invalid filtration entry ", filt_split[i], sep = ""))
+  wb_step <- 1
+  while(wb_step <= length(filt_split)) {
+    if (!filt_split[wb_step] %in% names(Word_banks)) {
+      stop(paste("Invalid filtration entry ", filt_split[wb_step], sep = ""))
     } else {
-      i <- i + 1
+      wb_step <- wb_step + 1
     }
   }
 
@@ -97,22 +100,24 @@ txm_ecosrc <- function(
       dplyr::pull()
 
     # Create temp files directory
-    dir.create(here::here("temp_files"), recursive = T)
-
+    if (!dir.exists(here::here("temp_files"))) {
+      dir.create(here::here("temp_files"), recursive = T)
+    }
+    
     ##### Accession ID retrieval #####
     if (!file.exists(here::here("temp_files", "AccID_temp.rds"))) {
-    i <- 1
+    Acc_step <- 1
     DocSum <- data.frame()
     pb_assign <- progress::progress_bar$new(
       format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
-      total = round(num_groups), clear = FALSE, width= 60)
+      total = base::ceiling(num_groups), clear = FALSE, width= 60)
     print("Retrieving Accession ID data")
-    while (i <= round(num_groups)) {
+    while (Acc_step <= base::ceiling(num_groups)) {
       chunk_ID <- try({
         # Post IDs
         AccIDs_post <- rentrez::entrez_post(
           db = "nuccore",
-          id = paste(as.character(unlist(AccIDs_to_src[[i]])),
+          id = paste(purrr::flatten(AccIDs_to_src[Acc_step])$AccID,
                      collapse = ","))
         # Download summary
         AccIDs_summary <- rentrez::entrez_summary(
@@ -126,22 +131,25 @@ txm_ecosrc <- function(
           elements = c("AccessionVersion", "Organism",
                        "Strain", "Title", "TaxId",
                        "SubType", "SubName"))) %>%
-          as.data.frame() %>% dplyr::mutate(dplyr::across(tidyselect::vars_select_helpers$where(is.list),
-                                                          .fns = ~as.character(.x)))
+          as.data.frame() %>% 
+          dplyr::mutate(
+            dplyr::across(
+              tidyselect::vars_select_helpers$where(is.list),
+              .fns = ~as.character(.x)))
       })
       if(!class(chunk_ID) == "try-error") {
         # Bind documents
         DocSum <- DocSum %>%
           dplyr::bind_rows(AccIDs_extract)
-        i <- i + 1
+        Acc_step <- Acc_step + 1
         pb_assign$tick()
-        if (i > round(num_groups)) {
+        if (Acc_step > base::ceiling(num_groups)) {
           message("Done!")
         }
         Sys.sleep(1)
       } else {
         print("trying again")
-        i <- i
+        Acc_step <- Acc_step
         Sys.sleep(1)
       }
     }
@@ -162,33 +170,36 @@ txm_ecosrc <- function(
 
     if (file.exists(here::here("temp_files", "PMIDs_temp.rds"))) {
       PMIDs <- readr::read_rds(here::here("temp_files", "PMIDs_temp.rds"))
-      i <- readr::read_rds(here::here("temp_files", "PMIDs_step.rds"))
+      PMID_step <- readr::read_rds(here::here("temp_files", "PMIDs_step.rds"))
       pb_assign <- readr::read_rds(here::here("temp_files", "pb_assign.rds"))
     } else {
-      i <- 1
+      PMID_step <- 1
       PMIDs <- data.frame()
       pb_assign <- progress::progress_bar$new(
         format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
-        total = round(num_groups), clear = FALSE, width= 60)
+        total = base::ceiling(num_groups), clear = FALSE, width= 60)
     }
-    if (i > round(num_groups)) {
+    if (PMID_step > base::ceiling(num_groups)) {
       message("Done!")
     } else {
     print("Retrieving PubMed links")
-    while (i <= round(num_groups)) {
+    while (PMID_step <= base::ceiling(num_groups)) {
       chunk_link <- try({
         # Find links
         AccIDs_elink <- rentrez::entrez_link(
-          db = "pubmed", dbfrom = "nuccore",
-          id = c(paste(as.character(unlist(AccIDs_to_src[[i]])))),
-          cmd = "neighbor", by_id = T,
-          rettype = "native", idtype = "acc"
+          db = "pubmed", 
+          dbfrom = "nuccore",
+          id = purrr::flatten(AccIDs_to_src[PMID_step])$AccID,
+          cmd = "neighbor", 
+          by_id = T,
+          rettype = "native", 
+          idtype = "acc"
       )
       })
       if(is.list(chunk_link)) {
       # Extract Links
       if (length(AccIDs_elink) > 0) {
-        names(AccIDs_elink) <- c(paste(as.character(unlist(AccIDs_to_src[[i]]))))
+        names(AccIDs_elink) <- purrr::flatten(AccIDs_to_src[PMID_step])$AccID
         AccIDs_elink <- purrr::map(AccIDs_elink,
                                    .f = function(x) x$links[["nuccore_pubmed"]]) %>%
           purrr::compact() %>%
@@ -210,21 +221,21 @@ txm_ecosrc <- function(
           # write temp PMIDs
             readr::write_rds(PMIDs, file = here::here("temp_files", "PMIDs_temp.rds"))
           }
-          i <- i + 1
+        PMID_step <- PMID_step + 1
           # write temp step
-          readr::write_rds(i, file = here::here("temp_files", "PMIDs_step.rds"))
+          readr::write_rds(PMID_step, file = here::here("temp_files", "PMIDs_step.rds"))
           pb_assign$tick()
           
           # write temp progress bar environment
           readr::write_rds(pb_assign, here::here("temp_files", "pb_assign.rds"))
 
-          if (i > round(num_groups)) {
+          if (PMID_step > base::ceiling(num_groups)) {
             message("Done!")
           }
           Sys.sleep(1)
         } else {
           print("trying again")
-          i <- i
+          PMID_step <- PMID_step
           Sys.sleep(1)
         }
       }
@@ -245,28 +256,31 @@ txm_ecosrc <- function(
         tidyr::nest() %>%
         dplyr::pull()
 
-      i <- 1
+      PMID_step <- 1
       PMIDs_data <- data.frame()
       pb_assign <- progress::progress_bar$new(
         format = "  downloading [:bar] :current/:total (:percent) eta: :eta elapsed: :elapsed",
-        total = round(num_groups), clear = FALSE, width= 60)
+        total = base::ceiling(num_groups), clear = FALSE, width= 60)
       print("Retrieving PubMed data")
-      while (i <= round(num_groups)) {
+      while (PMID_step <= base::ceiling(num_groups)) {
         chunk_pub <- try({
           PMIDs_post <- rentrez::entrez_post(
             db = "pubmed",
-            id = paste(as.character(unlist(PMIDs_to_src[[i]])),
+            id = paste(purrr::flatten(PMIDs_to_src[PMID_step])$PMIDs,
                       collapse = ","
           )
         )
         PMIDs_fetch <- rentrez::entrez_fetch(
-          db = "pubmed", web_history = PMIDs_post,
-          rettype = "native", retmode = "xml", parsed = T
+          db = "pubmed", 
+          web_history = PMIDs_post,
+          rettype = "native", 
+          retmode = "xml", 
+          parsed = T
         )
-        j <- 1
-        while (j <= nrow(XML::xmlToDataFrame(PMIDs_fetch))) {
+        xml_step <- 1
+        while (xml_step <= nrow(XML::xmlToDataFrame(PMIDs_fetch))) {
           Med_sub <- XML::xmlRoot(PMIDs_fetch) %>%
-            .[[j]] %>%
+            .[[xml_step]] %>%
             .[["MedlineCitation"]]
 
           PMIDs_MESH <- Med_sub %>%
@@ -274,7 +288,7 @@ txm_ecosrc <- function(
             purrr::set_names(as.character(make.unique(names(.)))) %>%
             purrr::keep(.x = ., names(.) %in% c("PMID", "MeshHeadingList")) %>%
             purrr::map_dfr(.x = ., .f = XML::xmlValue) %>%
-            as.data.frame() %>%
+            base::as.data.frame() %>%
             dplyr::rename("PMIDs" = .data$PMID)
 
           Title_Abstract <- Med_sub %>%
@@ -283,7 +297,7 @@ txm_ecosrc <- function(
             purrr::set_names(as.character(make.unique(names(.)))) %>%
             purrr::keep(.x = ., names(.) %in% c("Journal", "ArticleTitle", "Abstract")) %>%
             purrr::map_dfr(.x = ., .f = XML::xmlValue) %>%
-            as.data.frame() %>%
+            base::as.data.frame() %>%
             dplyr::mutate(Abstract = ifelse("Abstract" %in% names(.), Abstract, NA)) %>%
             dplyr::mutate(Journal = ifelse("Journal" %in% names(.), Journal, NA)) %>%
             dplyr::mutate(ArticleTitle = ifelse("ArticleTitle" %in% names(.),
@@ -293,27 +307,32 @@ txm_ecosrc <- function(
               Abstract, sep = "")
             ) %>%
             dplyr::bind_cols(PMIDs_MESH) %>%
-            dplyr::select(dplyr::any_of(c("PMIDs", "Article", "MeshHeadingList")))
-
-          PMIDs_data <- PMIDs_data %>%
-            dplyr::bind_rows(Title_Abstract) %>%
+            dplyr::select(dplyr::any_of(c("PMIDs", 
+                                          "Article", 
+                                          "MeshHeadingList"))) %>%
             dplyr::mutate(MeshHeadingList = ifelse(
-              "MeshHeadingList" %in% names(.), MeshHeadingList, NA)) %>%
+              "MeshHeadingList" %in% names(.), 
+              MeshHeadingList, 
+              NA)) %>%
             dplyr::mutate(Article = ifelse(
               "Article" %in% names(.), Article, NA))
-          j <- j + 1
+          
+          PMIDs_data <- PMIDs_data %>%
+            dplyr::bind_rows(Title_Abstract) 
+          
+          xml_step <- xml_step + 1
         }
         })
         if(!class(chunk_pub) == "try-error") {
-          i <- i + 1
+          PMID_step <- PMID_step + 1
           pb_assign$tick()
-          if (i > round(num_groups)) {
+          if (PMID_step > base::ceiling(num_groups)) {
             message("Done!")
           }
           Sys.sleep(1)
         } else {
           print("trying again")
-          i <- i
+          PMID_step <- PMID_step
           Sys.sleep(1)
         }
       }
@@ -437,17 +456,19 @@ txm_ecosrc <- function(
     if (!is.na(Host_word_bank[1])) {
 
       Host_data_tokeep <- c()
-      i <- 1
-      while (i <= length(Host_word_bank)) {
-        print(paste("Searching through ", names(Host_word_bank[i]), " word banks", sep = ""))
+      Host_step <- 1
+      while (Host_step <= length(Host_word_bank)) {
+        print(paste("Searching through ", 
+                    names(Host_word_bank[Host_step]), 
+                    " word banks", sep = ""))
         Host_data_filt <- Data_to_filt %>%
           dplyr::mutate_if(is.list, as.character) %>%
           dplyr::filter(stringr::str_detect(
-            pooled_data, stringr::regex(as.character(unlist(Host_word_bank[i])),
+            pooled_data, stringr::regex(as.character(unlist(Host_word_bank[Host_step])),
                                         ignore_case = T
             ))) %>%
           dplyr::filter(is.na(host) | stringr::str_detect(
-            host, pattern = stringr::regex(as.character(unlist(Host_word_bank[i])),
+            host, pattern = stringr::regex(as.character(unlist(Host_word_bank[Host_step])),
                                            ignore_case = T
             )
           ))
@@ -461,7 +482,7 @@ txm_ecosrc <- function(
           dplyr::distinct(.data$AccID, .keep_all = T) %>%
           dplyr::ungroup()
 
-        i <- i + 1
+        Host_step <- Host_step + 1
       }
       Host_data_tokeep <- Host_data_tokeep %>%
         dplyr::arrange(.data$ID) %>%
@@ -481,13 +502,16 @@ txm_ecosrc <- function(
     ##### Negate filtration #####
     if (!is.na(Negate_word_bank[1])) {
       Negate_data_tokeep <- c()
-      i <- 1
-      while (i <= length(Negate_word_bank)) {
-        print(paste("Searching through ", names(Negate_word_bank[i]), " word banks", sep = ""))
+      Neg_step <- 1
+      while (Neg_step <= length(Negate_word_bank)) {
+        print(paste("Searching through ", 
+                    names(Negate_word_bank[Neg_step]), 
+                    " word banks", 
+                    sep = ""))
         Negate_data_filt <- Data_to_filt %>%
           dplyr::mutate_if(is.list, as.character) %>%
           dplyr::filter(stringr::str_detect(
-            pooled_data, stringr::regex(as.character(unlist(Negate_word_bank[i])),
+            pooled_data, stringr::regex(as.character(unlist(Negate_word_bank[Neg_step])),
                                         ignore_case = T), negate = T) |
               stringr::str_detect(pooled_data, "ISHAM") |
               stringr::str_detect(host, as.character(unlist(Host_word_bank)))
@@ -502,7 +526,7 @@ txm_ecosrc <- function(
           dplyr::distinct(.data$AccID, .keep_all = T) %>%
           dplyr::ungroup()
 
-        i <- i + 1
+        Neg_step <- Neg_step + 1
       }
       Negate_data_tokeep <- Negate_data_tokeep %>%
         dplyr::arrange(.data$ID) %>%
@@ -527,17 +551,20 @@ txm_ecosrc <- function(
     if (!is.na(Site_word_bank[1])) {
 
       Site_data_tokeep <- c()
-      i <- 1
-      while (i <= length(Site_word_bank)) {
-        print(paste("Searching through ", names(Site_word_bank[i]), " word banks", sep = ""))
+      Site_step <- 1
+      while (Site_step <= length(Site_word_bank)) {
+        print(paste("Searching through ", 
+                    names(Site_word_bank[Site_step]), 
+                    " word banks", 
+                    sep = ""))
         Site_data_filt <- Data_to_filt %>%
           dplyr::mutate_if(is.list, as.character) %>%
           dplyr::filter(stringr::str_detect(
-            pooled_data, stringr::regex(as.character(unlist(Site_word_bank[i])),
+            pooled_data, stringr::regex(as.character(unlist(Site_word_bank[Site_step])),
                                         ignore_case = T
             ))) %>%
           dplyr::filter(is.na(Isolation_source) | stringr::str_detect(
-            Isolation_source, pattern = stringr::regex(as.character(unlist(Site_word_bank[i])),
+            Isolation_source, pattern = stringr::regex(as.character(unlist(Site_word_bank[Site_step])),
                                                        ignore_case = T
             )
           ))
@@ -551,7 +578,7 @@ txm_ecosrc <- function(
           dplyr::distinct(.data$AccID, .keep_all = T) %>%
           dplyr::ungroup()
 
-        i <- i + 1
+        Site_step <- Site_step + 1
       }
       Site_data_tokeep <- Site_data_tokeep %>%
         dplyr::arrange(.data$ID) %>%
