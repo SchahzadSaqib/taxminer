@@ -106,8 +106,24 @@ readr::write_lines(FASTA_file,
                                 ".fa", 
                                 sep = ""))
 
+## Check exisitng alignment file
+if (file.exists(here::here(output_path,
+                           paste("Alignment_",
+                                 output_name,
+                                 ".csv",
+                                 sep = "")))) {
+  overwrite <- utils::askYesNo(paste(basename(here::here(output_path,
+                                                         paste("Alignment_",
+                                                               output_name,
+                                                               ".csv",
+                                                               sep = ""))), 
+                                     "Overwrite existing file?", 
+                                     sep = " "))
+} else {
+  overwrite <- T
+}
 
-if (Run_Blast == T) {
+if (Run_Blast == T & overwrite == T) {
 
   # Move taxdb files from database folder to the query fasta location to ensure species assignment
   files_to_copy <- c(

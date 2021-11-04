@@ -195,8 +195,7 @@ txm_ecosrc <- function(
           rettype = "native", 
           idtype = "acc"
       )
-      })
-      if(is.list(chunk_link)) {
+     
       # Extract Links
       if (length(AccIDs_elink) > 0) {
         names(AccIDs_elink) <- purrr::flatten(AccIDs_to_src[PMID_step])$AccID
@@ -214,9 +213,11 @@ txm_ecosrc <- function(
               dplyr::distinct(.data$PMIDs, .keep_all = T)
           }
       }
-      if (!is.null(AccIDs_elink)) {
+      })
+      if(is.data.frame(chunk_link)) {
+      if (!is.null(chunk_link)) {
         PMIDs <- PMIDs %>%
-          dplyr::bind_rows(AccIDs_elink)
+          dplyr::bind_rows(chunk_link)
 
           # write temp PMIDs
             readr::write_rds(PMIDs, file = here::here("temp_files", "PMIDs_temp.rds"))
@@ -234,9 +235,9 @@ txm_ecosrc <- function(
           }
           Sys.sleep(1)
         } else {
-          print("trying again")
+          print("reconnecting")
           PMID_step <- PMID_step
-          Sys.sleep(1)
+          Sys.sleep(5)
         }
       }
     }
