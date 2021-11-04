@@ -106,8 +106,8 @@ readr::write_lines(FASTA_file,
                                 ".fa", 
                                 sep = ""))
 
-## Check exisitng alignment file
-if (file.exists(here::here(output_path,
+## Check existing alignment file
+if (Run_Blast == T & file.exists(here::here(output_path,
                            paste("Alignment_",
                                  output_name,
                                  ".csv",
