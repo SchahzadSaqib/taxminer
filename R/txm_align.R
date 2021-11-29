@@ -70,7 +70,8 @@ max_out = 500
   }
 
   if (!dir.exists(output_path)) {
-    dir.create(output_path)
+    dir.create(output_path, 
+               recursive = T)
   }
 
 # Reset seqs to include all ASVs
