@@ -26,6 +26,9 @@ utils::globalVariables(c(
 #' @param Precomp_tbl_assign (Optional) Default Dataset + system date. Name of a new compiled database
 #'                            to be assigned
 #' @param savedata (Logical) Default TRUE. Should a compiled database be saved to directory?
+#' @param sys.break (integer) Default 1. Amount of time, in seconds, that the
+#'                  system is paused between iterations. This is handy with larger
+#'                  queries to reduce to load on the NCBI servers.         
 #'
 #' @export
 txm_ecosrc <- function(
@@ -36,7 +39,8 @@ txm_ecosrc <- function(
   do_filter = T,
   Precomp_tbl = NA,
   Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
-  savedata = T) {
+  savedata = T,
+  sys.break = 1) {
   
   ##### Check whether the input contains data #####
   if (is.na(input_table[[1]][[1]])) {
@@ -146,19 +150,21 @@ txm_ecosrc <- function(
           if (Acc_step > base::ceiling(num_groups)) {
             message("Done!")
           }
-          Sys.sleep(1)
+          Sys.sleep(sys.break)
         } else {
           print("trying again")
           Acc_step <- Acc_step
-          Sys.sleep(1)
+          Sys.sleep(sys.break + 10)
         }
       }
       
       
       # write temp file
-      readr::write_rds(DocSum, file = here::here("temp_files", "AccID_temp.rds"))
+      readr::write_rds(DocSum, file = here::here("temp_files", 
+                                                 "AccID_temp.rds"))
     } else {
-      DocSum <- readr::read_rds(here::here("temp_files", "AccID_temp.rds"))
+      DocSum <- readr::read_rds(here::here("temp_files", 
+                                           "AccID_temp.rds"))
     }
     
     # Clean final list
@@ -168,10 +174,14 @@ txm_ecosrc <- function(
     
     
     
-    if (file.exists(here::here("temp_files", "PMIDs_temp.rds"))) {
-      PMIDs <- readr::read_rds(here::here("temp_files", "PMIDs_temp.rds"))
-      PMID_step <- readr::read_rds(here::here("temp_files", "PMIDs_step.rds"))
-      pb_assign <- readr::read_rds(here::here("temp_files", "pb_assign.rds"))
+    if (file.exists(here::here("temp_files", 
+                               "PMIDs_temp.rds"))) {
+      PMIDs <- readr::read_rds(here::here("temp_files", 
+                                          "PMIDs_temp.rds"))
+      PMID_step <- readr::read_rds(here::here("temp_files", 
+                                              "PMIDs_step.rds"))
+      pb_assign <- readr::read_rds(here::here("temp_files", 
+                                              "pb_assign.rds"))
     } else {
       PMID_step <- 1
       PMIDs <- data.frame()
@@ -233,11 +243,11 @@ txm_ecosrc <- function(
           if (PMID_step > base::ceiling(num_groups)) {
             message("Done!")
           }
-          Sys.sleep(1)
+          Sys.sleep(sys.break)
         } else {
           print("reconnecting")
           PMID_step <- PMID_step
-          Sys.sleep(5)
+          Sys.sleep(sys.break + 10)
         }
       }
     }
@@ -330,11 +340,11 @@ txm_ecosrc <- function(
           if (PMID_step > base::ceiling(num_groups)) {
             message("Done!")
           }
-          Sys.sleep(1)
+          Sys.sleep(sys.break)
         } else {
           print("reconnecting")
           PMID_step <- PMID_step
-          Sys.sleep(1)
+          Sys.sleep(sys.break + 10)
         }
       }
       
