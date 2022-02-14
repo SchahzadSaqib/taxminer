@@ -1,3 +1,4 @@
+
 test_data <- data.frame(1:50) %>%
   dplyr::mutate(AccID = c(
     'CP046311.1','CP049223.1','CP049781.1','MK713563.1','KU726641.1','MH898663.1',
@@ -13,16 +14,12 @@ test_data <- data.frame(1:50) %>%
   purrr::set_names("ID", "AccID")
 
 Search_test <- txm_ecosrc(
-  input_table = test_data,
-  filter_host = "human",
-  filter_site = c("vagina", "FRS", "gut+oral+skin+clinical"),
-  filter_negate = "non_human", savedata = F)
+  hit_tbl = test_data,
+  filt_host = "human",
+  filt_site = c("vagina", "FRS", "gut+oral+skin+clinical"),
+  filt_negt = "non_human", savedata = F)
 
 Lineage_test <- txm_lineage(Search_test)
 
 unlink(paste("Dataset_", Sys.Date(), ".rds", sep = ""))
 unlink("_snaps")
-
-testthat::expect_length(Search_test, 11)
-testthat::expect_equal(nrow(Search_test), 46)
-testthat::expect_length(Lineage_test, 17)

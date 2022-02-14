@@ -5,41 +5,45 @@
 \title{Text mining and filtration}
 \usage{
 txm_ecosrc(
-  input_table,
-  filter_host = NA,
-  filter_site = NA,
-  filter_negate = NA,
-  do_filter = T,
-  Precomp_tbl = NA,
-  Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
-  savedata = T
+  hit_tbl,
+  filt_host = NA,
+  filt_site = NA,
+  filt_negt = NA,
+  do_filt = T,
+  asbd_tbl = NA,
+  asgn_tbl = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
+  savedata = T,
+  sys.break = 1
 )
 }
 \arguments{
-\item{input_table}{(Required) Default NULL. Output table obtained from \link[taxminer]{txm_align}. Alternatively,
+\item{hit_tbl}{(Required) Default NULL. Output table obtained from \link[taxminer]{txm_align}. Alternatively,
 A data.frame with at least 3 columns
 \itemize{
 \item ID: sequence/hit ID numbers.
 \item AccID: Accession IDs.
-\item TaxID': taxonomic IDs.
 }}
 
-\item{filter_host}{(Optional) Default NA. Filter annotations by host}
+\item{filt_host}{(Optional) Default NA. Filter annotations by host}
 
-\item{filter_site}{(Optional) Default NA. Filter annotations by body site or environment.}
+\item{filt_site}{(Optional) Default NA. Filter annotations by body site or environment.}
 
-\item{filter_negate}{(Optional) Default NA. Disregard annotations that contain these terms.}
+\item{filt_negt}{(Optional) Default NA. Disregard annotations that contain these terms.}
 
-\item{do_filter}{(Logical) Default TRUE. Perform filtration using the word banks. If FALSE the output will
+\item{do_filt}{(Logical) Default TRUE. Perform filtration using the word banks. If FALSE the output will
 contain all accession IDs and the extracted information associated to them.}
 
-\item{Precomp_tbl}{(Optional) Default NA. Specify the name of the pre-compiled database
+\item{asbd_tbl}{(Optional) Default NA. Specify the name of the pre-compiled database
 present within the directory.}
 
-\item{Precomp_tbl_assign}{(Optional) Default Dataset + system date. Name of a new compiled database
+\item{asgn_tbl}{(Optional) Default Dataset + system date. Name of a new compiled database
 to be assigned}
 
 \item{savedata}{(Logical) Default TRUE. Should a compiled database be saved to directory?}
+
+\item{sys.break}{(integer) Default 1. Amount of time, in seconds, that the
+system is paused between iterations. This is handy with larger
+queries to reduce to load on the NCBI servers.}
 }
 \description{
 Extract information from NCBI nucleotide and PubMed databases, attaching ecosystem specificity to each

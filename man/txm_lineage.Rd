@@ -7,27 +7,30 @@
 txm_lineage(
   taxids,
   bindtoAcc = T,
-  Precomp_tbl = NA,
-  Precomp_tbl_assign = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
+  asbd_tbl = NA,
+  asgn_tbl = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
   savedata = T
 )
 }
 \arguments{
-\item{taxids}{(Required) Output table obtained from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with
-a single column named "TaxID" and optionally a second column named "AccID".}
+\item{taxids}{(Required) Output table obtained
+from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with a single
+column named "TaxID" and optionally a second column named "AccID".}
 
 \item{bindtoAcc}{(Logical) Default TRUE. Bind lineage to accession IDs.}
 
-\item{Precomp_tbl}{(Optional) Default NA. Specify the name of the pre-compiled database
-present within the directory.}
+\item{asbd_tbl}{(Optional) Default NA. Specify the name of the
+pre-assembled database present within the directory.}
 
-\item{Precomp_tbl_assign}{(Optional) Default Dataset + system date. Name of a new compiled database
-to be assigned}
+\item{asgn_tbl}{(Optional) Default Dataset + system date. Name of a new
+database to be assembled}
 
-\item{savedata}{(Logical) Default TRUE. Should a compiled database be saved to directory?}
+\item{savedata}{(Logical) Default TRUE. Should a compiled database be
+saved to directory?}
 }
 \description{
 Obtain full lineage from taxonomic IDs. Splits TaxIDs into batches of 200 and uses
-\link[rentrez:entrez_post]{entrez_post} to post them onto the NCBI web history server, followed by using
+\link[rentrez:entrez_post]{entrez_post} to post them onto the NCBI
+web history server, followed by using
 \link[rentrez:entrez_fetch]{entrez_fetch} to obtain xml files.
 }

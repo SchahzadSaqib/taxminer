@@ -5,73 +5,77 @@
 \title{Customized local BLAST}
 \usage{
 txm_align(
-  input,
-  previous_run = NULL,
+  seq_in,
+  db_path = NULL,
+  db_name = NULL,
+  tab_out = paste("Output", Sys.Date(), sep = ""),
+  tab_path = ".",
+  acsn_list = NULL,
+  acsn_path = ".",
   task = "megablast",
-  database_path = NULL,
-  database_name = NULL,
-  output_name = paste("Output", Sys.Date(), sep = ""),
-  output_path = ".",
   threads = 1,
-  accession_list = NULL,
-  accession_path = ".",
-  do_acc_check = F,
+  acsn_check = F,
   show = F,
-  Run_Blast = T,
+  run_blst = T,
   qcvg = 98,
   pctidt = 98,
   max_out = 500
 )
 }
 \arguments{
-\item{input}{(Required) All input types accepted by \link[dada2]{getSequences}.}
+\item{seq_in}{(Required) All seq_in types accepted by
+\link[dada2]{getSequences}.}
 
-\item{previous_run}{(Optional) Default NULL. Remove previously aligned sequences
-(must contain valid IDs)}
+\item{db_path}{(Required) Full path for local BLAST database being used for
+alignment.}
 
-\item{task}{(Optional) Default "megablast".}
+\item{db_name}{(Required) Name of BLAST database.}
 
-\item{database_path}{(Required) Full path for local BLAST
-database being used for alignment.}
+\item{tab_out}{(Optional) Default "Output" + System date. Specify name of
+the output files.}
 
-\item{database_name}{(Required) Name of BLAST database.}
+\item{tab_path}{(Optional) Default "." (current working directory). Specify
+full output path for results.}
 
-\item{output_name}{(Optional) Default "Output" + System date.
-Specify name of the output files.}
+\item{acsn_list}{(Optional) Default NULL. Full path to a list of accession
+IDs that will be used to restrict the BLAST database (-seqidlist), which
+is highly recommended for large databases such as "nt/nr". This can be
+obtained using the \link[taxminer]{txm_accIDs} function provided within this
+package. Further information regarding search limitations is available on
+\href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST user manual}}
 
-\item{output_path}{(Optional) Default "." (current working directory). Specify full output path for results.}
+\item{acsn_path}{(Optional) Default "." (current working directory). Specify
+full path to the accession ID list.}
 
-\item{threads}{(Optional) Default 1. Number of threads assigned to BLAST alignment.}
+\item{task}{(Optional) Default "megablast". Other possible tasks can be
+found here:
+\href{https://www.ncbi.nlm.nih.gov/books/NBK569839/#usrman_BLAST_feat.Tasks}{Tasks}}
 
-\item{accession_list}{(Optional) Default NULL. Full path to a list of accession IDs that will be
-used to restrict the BLAST database (-seqidlist), which is highly recommended
-for large databases such as "nt/nr". This can be obtained using
-the \link[taxminer]{txm_accIDs} function provided within this
-package. Further information regarding search limitations is
-available on
-\href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST command line user manual}}
+\item{threads}{(Optional) Default 1. Number of threads assigned to BLAST
+alignment.}
 
-\item{accession_path}{(Optional) Default "." (current working directory). Specify full path to the accession list.}
-
-\item{do_acc_check}{(Logical) Default FALSE. If an accession ID list is provided, BLASTDB v5 requires it to be
-pre-processed (blastdb_aliastool) prior to being used for restricting the database.
-Set this to TRUE if an unprocessed accession ID list is specified.}
+\item{acsn_check}{(Logical) Default FALSE. If an accession ID list is
+provided, BLASTDB v5 requires it to be pre-processed (blastdb_aliastool)
+prior to being used for restricting the database. Set this to TRUE if an
+unprocessed accession ID list is specified.}
 
 \item{show}{(Logical) Default FALSE. Switch from console to terminal?}
 
-\item{Run_Blast}{(Logical) Default TRUE. Set to FALSE if an existing comma-delimited alignment file is present
-in the directory and the function should be utilized to process it.}
+\item{run_blst}{(Logical) Default TRUE. Set to FALSE if an existing
+comma-delimited alignment file is present in the directory.}
 
-\item{qcvg}{(Optional) Default 98. Query coverage filtration in alignment as a percentage.}
+\item{qcvg}{(Optional) Default 98 (\%). Threshold for query coverage.}
 
-\item{pctidt}{(Optional) Default 98. Percentage identity filtration in alignment as a percentage}
+\item{pctidt}{(Optional) Default 98 (\%). Threshold for percentage identity.}
 
-\item{max_out}{(Optional) Default 500. Maximum number of alignments ("-max_target_seqs"). This should be set much
-higher when using large databases such as "nt/nr", especially when other restrictions are kept to a
-minimum.}
+\item{max_out}{(Optional) Default 500. Maximum number of alignments
+("-max_target_seqs"). Higher values are recommended when using large
+databases such as "nt/nr".}
 }
 \description{
-Build and run a customized BLAST alignment using local command line BLAST and locally downloaded databases from
-within RStudio. User defined inputs and specifications are used to build a BLAST command, which is
-transferred to RStudio terminal. The output is formatted as BLASTn tabular output format 6.
+Build and run a customized BLAST alignment using local cmd line BLAST
+and locally downloaded databases from within RStudio. User defined seq_ins
+and specifications are used to build a BLAST cmd, which is transferred
+to RStudio terminal. The output is formatted as BLASTn tabular output
+format 6.
 }

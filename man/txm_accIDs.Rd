@@ -4,12 +4,14 @@
 \alias{txm_accIDs}
 \title{Fetch accession ID list}
 \usage{
-txm_accIDs(text_query = NA, db2src = "nucleotide", out_name = NA)
+txm_accIDs(text_query = NA, db2src = NA, out_name = NA)
 }
 \arguments{
-\item{text_query}{(Required) Default NA. Text query specifying what should be looked for.}
+\item{text_query}{(Required) Default NA. Text query specifying what should
+be looked for.}
 
-\item{db2src}{(Required) Default "nucleotide". Name of NCBI database to search.}
+\item{db2src}{(Required) Default NA. Name of NCBI database to
+search.}
 
 \item{out_name}{(Required) Default NA. Name of the output file.}
 }
@@ -17,11 +19,13 @@ txm_accIDs(text_query = NA, db2src = "nucleotide", out_name = NA)
 A list of accession IDs, one per line, corresponding to the user defined text query and NCBI database
 }
 \description{
-Fetcha a list of accession IDs that will be used for restricting subsequent BLAST alignments. This uses \link[rentrez]{rentrez}
-to communicate with NCBI databases. Specifically, \link[rentrez:entrez_search]{entrez_search} to obtain all relevant UIDs for
-the user defined "Text query", with the "use_history" option set to TRUE, thus posting all UIDs onto the
-NCBI web history server. Next, \link[rentrez:entrez_fetch]{entrez_fetch} is used to extract accession IDs in batches of 10,000, appending each cycle to an
-output file.
+Fetch a list of accession IDs that will be used for restricting subsequent
+BLAST alignments. This uses \link[rentrez]{rentrez} to communicate with
+NCBI databases. Specifically, \link[rentrez:entrez_search]{entrez_search}
+to obtain all relevant IDs for the user defined "Text query". All IDs  are
+posted onto the NCBI web history servers.
+Next, \link[rentrez:entrez_fetch]{entrez_fetch} is used to extract
+accession IDs in batches of 10,000, appending each cycle to an output file.
 }
 \examples{
 \dontrun{
