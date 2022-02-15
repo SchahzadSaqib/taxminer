@@ -15,7 +15,7 @@ utils::globalVariables(c(
 #' @param bindtoAcc (Logical) Default TRUE. Bind lineage to accession IDs.
 #' @param asbd_tbl (Optional) Default NA. Specify the name of the 
 #' pre-assembled database present within the directory.
-#' @param asgn_tbl (Optional) Default Dataset + system date. Name of a new 
+#' @param asgn_tbl (Optional) Default Dataset_lge + system date. Name of a new 
 #' database to be assembled
 #' @param savedata (Logical) Default TRUE. Should a compiled database be 
 #' saved to directory?
@@ -26,7 +26,10 @@ txm_lineage <- function(
   taxids, 
   bindtoAcc = T, 
   asbd_tbl = NA,
-  asgn_tbl = paste("Dataset_", Sys.Date(), ".rds", sep = ""), 
+  asgn_tbl = paste("Dataset_lge", 
+                   Sys.Date(), 
+                   ".fst", 
+                   sep = ""), 
   savedata = T) {
   
   check_lineage(taxids, 
@@ -39,7 +42,7 @@ txm_lineage <- function(
 
   if (!is.na(asbd_tbl)) {
     print("Reading in dataset and searching for existing lineage")
-    asbd_tbl_sub <- readRDS(asbd_tbl) %>%
+    asbd_tbl_sub <- fst::read_fst(asbd_tbl) %>%
       dplyr::inner_join(taxids_src, by = "TaxID")
 
     taxids_src <- taxids_src %>%
@@ -162,14 +165,17 @@ txm_lineage <- function(
       if (!is.na(asbd_tbl)) {
         if (!is.null(taxids_src)) {
           print("Writing new data to Pre-compiled dataset")
-          asbd_full <- readRDS(asbd_tbl) %>%
+          asbd_full <- fst::read_fst(asbd_tbl) %>%
             dplyr::bind_rows(lineage) %>%
             dplyr::arrange(.data$TaxID) %>%
-            saveRDS(file = asbd_tbl)
+            fst::write_fst(asbd_tbl, 
+                           100)
         }
       } else {
         print("Creating dataset")
-        saveRDS(lineage, file = asgn_tbl)
+        fst::write_fst(lineage, 
+                       asgn_tbl, 
+                       100)
       }
     }
   }

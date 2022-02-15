@@ -51,7 +51,7 @@ txm_ecosrc <- function(
   asbd_tbl = NA,
   asgn_tbl = paste("Dataset_", 
                    Sys.Date(), 
-                   ".rds", sep = ""),
+                   ".fst", sep = ""),
   savedata = T,
   sys.break = 1) {
   
@@ -68,7 +68,7 @@ txm_ecosrc <- function(
   if (!is.na(asbd_tbl)) {
     print("Reading in dataset and searching for existing Accession ids")
     
-    asbd_tbl_sub <- readr::read_rds(asbd_tbl) %>%
+    asbd_tbl_sub <- fst::read_fst(asbd_tbl) %>%
       dtplyr::lazy_dt() %>%
       dplyr::inner_join(ids_src, by = "AccID") %>%
       base::as.data.frame()
@@ -116,7 +116,7 @@ txm_ecosrc <- function(
     ##### Accession ID retrieval -----
     if (!file.exists(
       here::here("temp_files", 
-                 "AccID_temp.rds"))) {
+                 "AccID_temp.fst"))) {
       acc_step <- 1
       doc_sum <- data.frame()
       pb_assign <- progress::progress_bar$new(
@@ -158,7 +158,6 @@ txm_ecosrc <- function(
                 .fns = ~as.character(.x)))
         })
         if(!class(chunk_ID) == "try-error") {
-          # Bind documents
           doc_sum <- doc_sum %>%
             dplyr::bind_rows(ids_extr)
           acc_step <- acc_step + 1
@@ -174,31 +173,35 @@ txm_ecosrc <- function(
         }
       }
       
-      # write temp file
-      readr::write_rds(doc_sum, 
-                       file = here::here("temp_files", 
-                                         "AccID_temp.rds"))
+      fst::write_fst(
+        doc_sum, 
+        here::here("temp_files",
+                   "AccID_temp.fst"), 
+        100)
     } else {
-      doc_sum <- readr::read_rds(
+      doc_sum <- fst::read_fst(
         here::here("temp_files", 
-                   "AccID_temp.rds"))
+                   "AccID_temp.fst"))
     }
     
-    # Clean final list
     doc_sum <- doc_sum %>%
       dplyr::mutate(meta = Clean_list(doc_sum)) %>%
       dplyr::select(-c(.data$SubType, 
                        .data$SubName))
     
     ##### PMIDs retrieval -----
-    if (file.exists(here::here("temp_files", 
-                               "pmids_temp.rds"))) {
-      pmids <- readr::read_rds(here::here("temp_files", 
-                                          "pmids_temp.rds"))
-      pmid_step <- readr::read_rds(here::here("temp_files", 
-                                              "pmids_step.rds"))
-      pb_assign <- readr::read_rds(here::here("temp_files", 
-                                              "pb_assign.rds"))
+    if (file.exists(
+      here::here("temp_files", 
+                 "pmids_temp.fst"))) {
+      pmids <- fst::read_fst(
+        here::here("temp_files", 
+                   "pmids_temp.fst"))
+      pmid_step <- readr::read_rds(
+        here::here("temp_files", 
+                   "pmids_step.rds"))
+      pb_assign <- readr::read_rds(
+        here::here("temp_files", 
+                   "pb_assign.rds"))
     } else {
       pmid_step <- 1
       pmids <- data.frame()
@@ -219,7 +222,6 @@ txm_ecosrc <- function(
       print("Retrieving PubMed links")
       while (pmid_step <= base::ceiling(splits)) {
         chunk_link <- try({
-          # Find links
           ids_elink <- rentrez::entrez_link(
             db = "pubmed", 
             dbfrom = "nuccore",
@@ -230,7 +232,6 @@ txm_ecosrc <- function(
             idtype = "acc"
           )
           
-          # Extract Links
           if (length(ids_elink) > 0) {
             names(ids_elink) <- purrr::flatten(
               ids_src[pmid_step])$AccID
@@ -259,22 +260,23 @@ txm_ecosrc <- function(
             pmids <- pmids %>%
               dplyr::bind_rows(chunk_link)
             
-            # write temp pmids
-            readr::write_rds(pmids, 
-                             file = here::here("temp_files", 
-                                               "pmids_temp.rds"))
+            fst::write_fst(
+              pmids,
+              here::here("temp_files", 
+                         "pmids_temp.fst"), 
+              100)
           }
           pmid_step <- pmid_step + 1
-          # write temp step
-          readr::write_rds(pmid_step, 
-                           file = here::here("temp_files", 
-                                             "pmids_step.rds"))
+          readr::write_rds(
+            pmid_step,
+            here::here("temp_files", 
+                       "pmids_step.rds"))
           pb_assign$tick()
           
-          # write temp progress bar environment
-          readr::write_rds(pb_assign, 
-                           here::here("temp_files", 
-                                      "pb_assign.rds"))
+          readr::write_rds(
+            pb_assign,
+            here::here("temp_files", 
+                       "pb_assign.rds"))
           
           if (pmid_step > base::ceiling(splits)) {
             message("Done!")
@@ -442,15 +444,18 @@ txm_ecosrc <- function(
         if (!is.na(asbd_tbl)) {
           if (!is.null(ids_src)) {
             print("Writing new data to Pre-compiled dataset")
-            asbd_full <- readRDS(asbd_tbl) %>%
+            asbd_full <- fst::read_fst(asbd_tbl) %>%
               dplyr::bind_rows(doc_sum) %>%
               dplyr::distinct(.data$AccID, 
                               .keep_all = T) %>%
-              saveRDS(file = asbd_tbl)
+            fst::write_fst(asbd_tbl, 
+                           100)
           }
         } else {
           print("Creating dataset")
-          saveRDS(doc_sum, file = asgn_tbl)
+          fst::write_fst(doc_sum, 
+                         asgn_tbl, 
+                         100)
         }
       }
     }
