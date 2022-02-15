@@ -101,6 +101,29 @@ check_lineage <- function(taxids,
   }
 }
 
+meta_extr <- function(x) {
+  df_extrt <- x %>%
+    dtplyr::lazy_dt() %>%
+    dplyr::mutate(
+      dplyr::across(
+        .cols = tidyselect::vars_select_helpers$where(is.factor), 
+        .fns = ~as.character(.x))) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(host = trimws(
+      stringr::str_extract(
+        .data$meta,
+        pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
+      ))) %>%
+    dplyr::mutate(Isolation_source = trimws(
+      stringr::str_extract(
+        .data$meta,
+        pattern = stringr::regex(
+          paste("(?<=isolation_source:).*?(?=\\s-)",
+                "(?<=isolation_source:).*?(?=$)", 
+                sep = "|"))))) %>%
+    as.data.frame()
+}
+
 
 Clean_list <- function(x) {
   clean <- x %>%

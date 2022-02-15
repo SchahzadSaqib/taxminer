@@ -439,6 +439,18 @@ txm_ecosrc <- function(
         dplyr::mutate(Article = NA)
     }
     
+    splits <- round(nrow(doc_sum) / 100000)
+    
+    doc_sum <- doc_sum %>%
+      dplyr::mutate(chunks = rep(0:splits, 
+                                 each = 100000, 
+                                 length.out = nrow(.))) %>%
+      dplyr::group_by(.data$chunks) %>%
+      tidyr::nest() %>%
+      dplyr::pull() %>%
+      purrr::map(.f = ~meta_extr(.x)) %>%
+      dplyr::bind_rows()
+    
     if (savedata) {
       if (!is.null(doc_sum)) {
         if (!is.na(asbd_tbl)) {
@@ -527,34 +539,12 @@ txm_ecosrc <- function(
       negt_wbank <- NA
     }
     
-    df_extrt <- doc_sum %>%
-      dplyr::mutate(
-        dplyr::across(
-          .cols = tidyselect::vars_select_helpers$where(is.factor), 
-                           .fns = ~as.character(.x))) %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(host = trimws(
-        stringr::str_extract(
-          .data$meta,
-          pattern = stringr::regex("(?<=host:).*?(?=\\s-)")
-        ))) %>%
-      dplyr::mutate(Isolation_source = trimws(
-        stringr::str_extract(
-          .data$meta,
-          pattern = stringr::regex(
-            paste("(?<=isolation_source:).*?(?=\\s-)",
-                  "(?<=isolation_source:).*?(?=$)", 
-                  sep = "|"))))) %>%
-      as.data.frame()
-    
-    df_extrt <- df_extrt %>%
+    df_filt <- doc_sum %>%
       tidyr::unite("pooled_data", 
                    c(.data$MeshHeadingList, 
                      .data$Article, 
                      .data$meta),
                    na.rm = T)
-    
-    df_filt <- df_extrt
     
     ##### filtration -----
     if (!is.na(host_wbank[1])) {
@@ -610,7 +600,7 @@ txm_ecosrc <- function(
         dplyr::distinct(.data$AccID, .keep_all = T) %>%
         dplyr::ungroup()
       
-      dscrd_host <- df_extrt %>%
+      dscrd_host <- doc_sum %>%
         dplyr::filter(!AccID %in% df_filt$AccID)
       base::assign("dscrd_host", 
                    dscrd_host, 
@@ -665,7 +655,7 @@ txm_ecosrc <- function(
         dplyr::distinct(.data$AccID, .keep_all = T) %>%
         dplyr::ungroup()
       
-      dscrd_negt <- df_extrt %>%
+      dscrd_negt <- doc_sum %>%
         {
           if (base::exists("dscrd_host") == T)
             dplyr::filter(., !.$AccID %in% dscrd_host$AccID)
@@ -724,7 +714,7 @@ txm_ecosrc <- function(
                       .data$AccID, 
                       tidyselect::everything())
       
-      discarded_site <- df_extrt %>%
+      discarded_site <- doc_sum %>%
         {
           if (base::exists("dscrd_host") == T)
             dplyr::filter(., !.$AccID %in% dscrd_host$AccID)
