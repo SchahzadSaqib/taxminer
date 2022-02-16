@@ -228,7 +228,7 @@ txm_align <- function(
     output_format <- paste(
       "-max_target_seqs",
       max_out,
-      "-outfmt '6 qacc sseqid staxids sscinames bitscore qcovs evalue pident'")
+      "-outfmt '6 qacc sgi saccver staxids sscinames bitscore qcovs evalue pident'")
     
     trmnl_cmd <- paste(blst_cmd,
                        db,
@@ -277,7 +277,8 @@ txm_align <- function(
                              ".csv", 
                              sep = "")))) %>%
       magrittr::set_colnames(c("ID", 
-                               "SeqID", 
+                               "GiID",
+                               "AccID",
                                "TaxID", 
                                "Species",
                                "bitscore", 
@@ -287,16 +288,6 @@ txm_align <- function(
       dtplyr::lazy_dt() %>%
       dplyr::filter(.data$qcovs >= qcvg) %>%
       dplyr::mutate(
-        SeqID = stringr::str_replace_all(
-          .data$SeqID,
-          pattern = "\\|", 
-          replacement = ";"), 
-        AccID = stringr::str_extract(
-          .data$SeqID, 
-          "(?<=gb;).*(?=;)"),
-        GiID = stringr::str_extract(
-          .data$SeqID,
-          "(?<=gi;).*(?=;gb)"),
         TaxID = as.numeric(
           stringr::str_extract(
             .data$TaxID,
@@ -304,13 +295,14 @@ txm_align <- function(
         Species = stringr::str_extract(
           .data$Species, 
           "^[^;]*")) %>%
+      dplyr::left_join(ASVs) %>%
       base::as.data.frame() %>%
-      dplyr::select(.data$ID, 
+      dplyr::select(.data$ID,
+                    .data$ASVs,
                     .data$TaxID, 
                     .data$AccID, 
                     .data$GiID, 
-                    tidyselect::everything(), 
-                    -.data$SeqID)
+                    tidyselect::everything())
   } else {
     print("No alignments")
   }
