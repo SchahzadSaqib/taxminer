@@ -290,7 +290,7 @@ txm_align <- function(
     }
   }
 
-  rm(list = str_subset(ls(), "owrt"), 
+  rm(list = stringr::str_subset(ls(), "owrt"), 
      envir = .GlobalEnv)
   
   ##### Process alignment results -----
