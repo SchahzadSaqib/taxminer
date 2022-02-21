@@ -251,8 +251,8 @@ txm_align <- function(
         dada2::addSpecies(
           here::here(
             alt_path, 
-            str_subset(list_dbs, 
-                       "silva.*species")), 
+            stringr::str_subset(list_dbs,
+                                "silva.*species")), 
           allowMultiple = T, 
           tryRC = T) %>%
         data.frame() %>%
@@ -277,8 +277,8 @@ txm_align <- function(
         dada2::addSpecies(
           here::here(
             alt_path, 
-            str_subset(list_dbs, 
-                       "rdp.*species")), 
+            stringr::str_subset(list_dbs,
+                                "rdp.*species")), 
           allowMultiple = T, 
           tryRC = T) %>%
         data.frame() %>%
