@@ -93,7 +93,7 @@ check_align <- function(db_name,
                     "rdp.*train", 
                     "rdp.*species") %>%
       purrr::map(.f = function(x) {
-        check <- str_subset(list_dbs, x) %>%
+        check <- stringr::str_subset(list_dbs, x) %>%
           purrr::is_empty()
         if (check) {
           stop(paste(x, "not found in the specified directory"))
