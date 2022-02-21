@@ -37,6 +37,13 @@ utils::globalVariables(c(
 #' provided, BLASTDB v5 requires it to be pre-processed (blastdb_aliastool) 
 #' prior to being used for restricting the database. Set this to TRUE if an 
 #' unprocessed accession ID list is specified.
+#' @param alt_annot (Logical) Default TRUE. Alternative annotations with SILVA
+#' and RDP databases using \link[dada2]{assignTaxonomy} for up to genus level
+#' annotations followed by \link[dada2]{addSpecies} for assigning species. 
+#' The pre-formatted databases are available here:
+#' \href{https://benjjneb.github.io/dada2/training.html}{dada2 reference data}
+#' @param alt_path (Required) Default NULL. Path to SILVA and RDP databases. 
+#' Must identify a folder that contains at least 4 files: 
 #' @param show (Logical) Default FALSE. Switch from console to terminal?
 #' @param run_blst (Logical) Default TRUE. Set to FALSE if an existing 
 #' comma-delimited alignment file is present in the directory.
@@ -57,6 +64,8 @@ txm_align <- function(
   tab_path = ".",
   acsn_list = NULL,
   acsn_path = ".",
+  alt_path = NULL, 
+  alt_annot = T, 
   task = "megablast",
   threads = 1,
   acsn_check = F,
@@ -69,22 +78,21 @@ txm_align <- function(
   
   ##### Data prep -----
   check_align(db_name, 
-               db_path, 
-               task, 
-               acsn_path, 
-               acsn_list, 
-               tab_out, 
-               tab_path)
+              db_path, 
+              task, 
+              acsn_path, 
+              acsn_list, 
+              tab_out, 
+              tab_path, 
+              run_blst, 
+              alt_annot, 
+              alt_path)
   
   ASVs <- dada2::getSequences(seq_in) %>%
     base::as.data.frame() %>%
     purrr::set_names("ASVs") %>%
     dplyr::mutate(ID = 1:nrow(.)) %>% 
     dplyr::select(.data$ID, .data$ASVs)
-  
-  print(paste(nrow(ASVs), 
-              " will be aligned", 
-              sep = ""))
   
   FASTA_file <- ASVs %>%
     dplyr::mutate(ID = paste(">", ID, sep = "")) %>%
@@ -100,48 +108,10 @@ txm_align <- function(
       ".fa", 
       sep = ""))
   
-  if (run_blst & 
-      file.exists(
-        here::here(tab_path,
-                   paste("Alignment_",
-                         tab_out,
-                         ".csv",
-                         sep = "")))) {
-    overwrite <- utils::askYesNo(
-      paste(
-        basename(
-          here::here(tab_path,
-                     paste("Alignment_",
-                           tab_out,
-                           ".csv",
-                           sep = ""))), 
-        "Overwrite existing file?", 
-        sep = " "))
-  } else {
-    overwrite <- T
-  }
-  
   if (run_blst & overwrite) {
-    
-    files_to_copy <- c(
-      paste(db_path, "/taxdb.bti", sep = ""),
-      paste(db_path, "/taxdb.btd", sep = "")
-    )
-    if (file.exists(files_to_copy[1]) & 
-        file.exists(files_to_copy[2])) {
-      file.copy(files_to_copy, 
-                to = here::here(), 
-                overwrite = T)
-    } else {
-      taxdb_check <- utils::askYesNo(
-        paste("No taxdb files found in ", 
-              db_path, 
-              ". Abort?", 
-              sep = ""))
-      if (taxdb_check) {
-        stop("Aborting: please specify correct directory with taxdb files")
-      }
-    }
+    print(paste(nrow(ASVs), 
+                " will be aligned", 
+                sep = ""))
     
     ##### Accession ID prep -----
     if (!is.null(acsn_list)) {
@@ -259,6 +229,65 @@ txm_align <- function(
               " - Please check terminal for details")))
     }
     rstudioapi::terminalKill(Blast)
+  }
+  
+  ##### Alternative annotations (Silva + RDP) -----
+  if (alt_annot) {
+    
+    list_dbs <- list.files(alt_path)
+    set.seed(10)
+    
+    if (owrt_silva) {
+      print("assigning taxonomies from silva")
+      annot_silva_sp <- dada2::assignTaxonomy(
+        seq_in, 
+        here::here(
+          alt_path, 
+          stringr::str_subset(list_dbs, 
+                              "silva.*train")), 
+        minBoot = 80, 
+        multithread = T, 
+        tryRC = T) %>%
+        dada2::addSpecies(
+          here::here(
+            alt_path, 
+            str_subset(list_dbs, 
+                       "silva.*species")), 
+          allowMultiple = T, 
+          tryRC = T) %>%
+        data.frame() %>%
+        tibble::rownames_to_column(var = "ASVs")
+      
+      fst::write_fst(annot_silva_sp, 
+                     path = here::here(tab_path, 
+                                       "Silva_annot.fst"))
+    }
+    
+    if (owrt_RDP) {
+      print("assigning taxonomies from rdp")
+      annot_rdp_sp <- dada2::assignTaxonomy(
+        seq_in, 
+        here::here(
+          alt_path, 
+          stringr::str_subset(list_dbs, 
+                              "rdp.*train")), 
+        minBoot = 80, 
+        multithread = T, 
+        tryRC = T) %>%
+        dada2::addSpecies(
+          here::here(
+            alt_path, 
+            str_subset(list_dbs, 
+                       "rdp.*species")), 
+          allowMultiple = T, 
+          tryRC = T) %>%
+        data.frame() %>%
+        tibble::rownames_to_column(var = "ASVs")
+      
+      fst::write_fst(annot_rdp_sp, 
+                     path = here::here(tab_path, 
+                                       "RDP_annot.fst"))
+    }
   }
   
   ##### Process alignment results -----

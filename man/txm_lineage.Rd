@@ -8,7 +8,7 @@ txm_lineage(
   taxids,
   bindtoAcc = T,
   asbd_tbl = NA,
-  asgn_tbl = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
+  asgn_tbl = paste("Dataset_lge", Sys.Date(), ".fst", sep = ""),
   savedata = T
 )
 }
@@ -22,7 +22,7 @@ column named "TaxID" and optionally a second column named "AccID".}
 \item{asbd_tbl}{(Optional) Default NA. Specify the name of the
 pre-assembled database present within the directory.}
 
-\item{asgn_tbl}{(Optional) Default Dataset + system date. Name of a new
+\item{asgn_tbl}{(Optional) Default Dataset_lge + system date. Name of a new
 database to be assembled}
 
 \item{savedata}{(Logical) Default TRUE. Should a compiled database be

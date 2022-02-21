@@ -11,7 +11,7 @@ txm_ecosrc(
   filt_negt = NA,
   do_filt = T,
   asbd_tbl = NA,
-  asgn_tbl = paste("Dataset_", Sys.Date(), ".rds", sep = ""),
+  asgn_tbl = paste("Dataset_", Sys.Date(), ".fst", sep = ""),
   savedata = T,
   sys.break = 1
 )

@@ -12,6 +12,8 @@ txm_align(
   tab_path = ".",
   acsn_list = NULL,
   acsn_path = ".",
+  alt_path = NULL,
+  alt_annot = T,
   task = "megablast",
   threads = 1,
   acsn_check = F,
@@ -46,6 +48,15 @@ package. Further information regarding search limitations is available on
 
 \item{acsn_path}{(Optional) Default "." (current working directory). Specify
 full path to the accession ID list.}
+
+\item{alt_path}{(Required) Default NULL. Path to SILVA and RDP databases.
+Must identify a folder that contains at least 4 files:}
+
+\item{alt_annot}{(Logical) Default TRUE. Alternative annotations with SILVA
+and RDP databases using \link[dada2]{assignTaxonomy} for up to genus level
+annotations followed by \link[dada2]{addSpecies} for assigning species.
+The pre-formatted databases are available here:
+\href{https://benjjneb.github.io/dada2/training.html}{dada2 reference data}}
 
 \item{task}{(Optional) Default "megablast". Other possible tasks can be
 found here:
