@@ -41,13 +41,17 @@ check_align <- function(db_name,
                          tab_out,
                          ".csv",
                          sep = "")))) {
-    overwrite <- utils::askYesNo(
+    owrt <- utils::askYesNo(
       "Blast annotations exist in the specified directory. Overwrite?")
   } else {
-    overwrite <- TRUE
+    owrt <- TRUE
   }
   
-  if (run_blst & overwrite) {
+  assign("owrt", 
+         owrt, 
+         .GlobalEnv)
+  
+  if (run_blst & owrt) {
     
     files_to_copy <- c(
       paste(db_path, "/taxdb.bti", sep = ""),
@@ -110,6 +114,10 @@ check_align <- function(db_name,
       owrt_silva <- TRUE
     }
     
+    assign("owrt_silva", 
+           owrt_silva, 
+           .GlobalEnv)
+    
     if (file.exists(
       here::here(tab_path, 
                  "RDP_annot.fst"))) {
@@ -119,6 +127,10 @@ check_align <- function(db_name,
     } else {
       owrt_RDP <- TRUE
     }
+    
+    assign("owrt_RDP", 
+           owrt_RDP, 
+           .GlobalEnv)
   }
 }
 

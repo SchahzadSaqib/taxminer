@@ -108,7 +108,7 @@ txm_align <- function(
       ".fa", 
       sep = ""))
   
-  if (run_blst & overwrite) {
+  if (run_blst & owrt) {
     print(paste(nrow(ASVs), 
                 " will be aligned", 
                 sep = ""))
@@ -289,6 +289,9 @@ txm_align <- function(
                                        "RDP_annot.fst"))
     }
   }
+
+  rm(list = str_subset(ls(), "owrt"), 
+     envir = .GlobalEnv)
   
   ##### Process alignment results -----
   align_path <- here::here(tab_path, 
