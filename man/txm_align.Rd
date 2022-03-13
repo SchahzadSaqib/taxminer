@@ -14,6 +14,8 @@ txm_align(
   acsn_path = ".",
   alt_path = NULL,
   alt_annot = T,
+  asbd_tbl_lge = NA,
+  asgn_tbl_lge = paste("Dataset_lge", Sys.Date(), ".fst", sep = ""),
   task = "megablast",
   threads = 1,
   acsn_check = F,
@@ -50,13 +52,25 @@ package. Further information regarding search limitations is available on
 full path to the accession ID list.}
 
 \item{alt_path}{(Required) Default NULL. Path to SILVA and RDP databases.
-Must identify a folder that contains at least 4 files:}
+Must identify a folder that contains at least 4 files:
+\itemize{
+\item silva training set (regex: "silva.*train")
+\item silva species assignment (regex: "silva.*species")
+\item rdp train set (regex: "rdp.*train")
+\item rdp species assignment (regex: "rdp.*species")
+}
+Pre-formatted dada2 databases are recommended:
+\href{https://benjjneb.github.io/dada2/training.html}{dada2 fasta files}}
 
 \item{alt_annot}{(Logical) Default TRUE. Alternative annotations with SILVA
 and RDP databases using \link[dada2]{assignTaxonomy} for up to genus level
-annotations followed by \link[dada2]{addSpecies} for assigning species.
-The pre-formatted databases are available here:
-\href{https://benjjneb.github.io/dada2/training.html}{dada2 reference data}}
+annotations followed by \link[dada2]{addSpecies} for assigning species.}
+
+\item{asbd_tbl_lge}{(Optional) Default NA. Full path and name of a
+pre-compiled table to be used for lineage assignment}
+
+\item{asgn_tbl_lge}{(Optional) Default Dataset_lge + system date. Full path
+and name of a new data set to be created.}
 
 \item{task}{(Optional) Default "megablast". Other possible tasks can be
 found here:
@@ -89,4 +103,6 @@ and locally downloaded databases from within RStudio. User defined seq_ins
 and specifications are used to build a BLAST cmd, which is transferred
 to RStudio terminal. The output is formatted as BLASTn tabular output
 format 6.
+In parallel, SILVA and RDP databases will be used to assign alternative
+annotations that are further used for annotations scores.
 }

@@ -27,7 +27,10 @@ Imports:
     here,
     dtplyr,
     data.table,
-    fst
+    fst,
+    xml2,
+    tibble,
+    writexl
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

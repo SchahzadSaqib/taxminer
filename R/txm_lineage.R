@@ -1,40 +1,37 @@
 utils::globalVariables(c(
-  "TaxID"
+  "TaxID",
+  "norank.1",
+  "species"
 ))
 
 #' Extract lineage
 #'
 #' Obtain full lineage from taxonomic IDs. Splits TaxIDs into batches of 200 and uses
-#' \link[rentrez:entrez_post]{entrez_post} to post them onto the NCBI 
+#' \link[rentrez:entrez_post]{entrez_post} to post them onto the NCBI
 #' web history server, followed by using
 #' \link[rentrez:entrez_fetch]{entrez_fetch} to obtain xml files.
 #'
-#' @param taxids (Required) Output table obtained 
-#' from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with a single 
+#' @param taxids (Required) Output table obtained
+#' from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with a single
 #' column named "TaxID" and optionally a second column named "AccID".
-#' @param bindtoAcc (Logical) Default TRUE. Bind lineage to accession IDs.
-#' @param asbd_tbl (Optional) Default NA. Specify the name of the 
+#' @param asbd_tbl (Optional) Default NA. Specify the name of the
 #' pre-assembled database present within the directory.
-#' @param asgn_tbl (Optional) Default Dataset_lge + system date. Name of a new 
+#' @param asgn_tbl (Optional) Default Dataset_lge + system date. Name of a new
 #' database to be assembled
-#' @param savedata (Logical) Default TRUE. Should a compiled database be 
-#' saved to directory?
 #'
 #' @export
 
-txm_lineage <- function(
-  taxids, 
-  bindtoAcc = T, 
-  asbd_tbl = NA,
-  asgn_tbl = paste("Dataset_lge", 
-                   Sys.Date(), 
-                   ".fst", 
-                   sep = ""), 
-  savedata = T) {
-  
-  check_lineage(taxids, 
-               bindtoAcc, 
-               asbd_tbl)
+txm_lineage <- function(taxids,
+                        asbd_tbl = NA,
+                        asgn_tbl = paste("Dataset_lge",
+                          Sys.Date(),
+                          ".fst",
+                          sep = ""
+                        )) {
+  check_lineage(
+    taxids,
+    asbd_tbl
+  )
 
   ##### Data preparation -----
   taxids_src <- taxids %>%
@@ -50,117 +47,117 @@ txm_lineage <- function(
       dplyr::ungroup() %>%
       dplyr::distinct(.data$TaxID)
     print(paste(nrow(taxids_src), "of",
-                sum(nrow(asbd_tbl_sub), nrow(taxids_src)),
-                "will be searched for",
-                sep = " "
+      sum(nrow(asbd_tbl_sub), nrow(taxids_src)),
+      "will be searched for",
+      sep = " "
     ))
   }
 
   if (nrow(taxids_src) > 0) {
     if (is.na(asbd_tbl)) {
       print(paste("No dataset provided -", nrow(taxids_src),
-                  "taxids will be searched for",
-                  sep = " "
+        "taxids will be searched for",
+        sep = " "
       ))
     }
 
-  splits <- round(nrow(taxids_src) / 200)
-  if (splits < 1) splits <- 1
+    splits <- round(nrow(taxids_src) / 200)
+    if (splits < 1) splits <- 1
 
-  taxids_src <- taxids_src %>%
-    dplyr::mutate(chunks = rep(0:splits, 
-                               each = 200, 
-                               length.out = nrow(.))) %>%
-    dplyr::group_by(.data$chunks) %>%
-    tidyr::nest() %>%
-    dplyr::pull()
+    taxids_src <- taxids_src %>%
+      dplyr::mutate(chunks = rep(0:splits,
+        each = 200,
+        length.out = nrow(.)
+      )) %>%
+      dplyr::group_by(.data$chunks) %>%
+      tidyr::nest() %>%
+      dplyr::pull()
 
-  ##### extract lineage -----
-  lge <- 1
-  lineage <- data.frame()
-  pb_assign <- progress::progress_bar$new(
-    format = paste("  downloading [:bar]", 
-                   ":current/:total", 
-                   "(:percent) eta:", 
-                   ":eta elapsed:", 
-                   ":elapsed", 
-                   sep = " "),
-    total = splits, 
-    clear = FALSE, 
-    width = 60)
-  print("Retrieving Lineage")
-  while (lge <= round(splits)) {
-    chunk_lin <- try({
-      TaxIDs_post <- rentrez::entrez_post(
-        db = "taxonomy",
-        id = paste(as.character(unlist(taxids_src[[lge]])),
-                   collapse = ","
+    ##### extract lineage -----
+    prgrs_bar <- new_bar(length(taxids_src))
+    assign(
+      "prgrs_bar",
+      prgrs_bar,
+      .GlobalEnv
+    )
+    print("Retrieving Lineage")
+
+    lineage <- taxids_src %>%
+      purrr::lmap(~ get_lge(.x)) %>%
+      purrr::flatten() %>%
+      purrr::map_dfr(.f = dplyr::bind_cols) %>%
+      dplyr::mutate(
+        norank.1 = ifelse(
+          "norank.1" %in% names(.),
+          norank.1,
+          NA
+        ),
+        dplyr::across(
+          .cols = tidyselect::everything(),
+          .f = ~ ifelse(stringr::str_detect(
+            .x,
+            "environmental samples"
+          ),
+          NA,
+          .x
+          )
+        ),
+        norank.1 = ifelse(is.na(norank.1),
+          .data$species,
+          norank.1
+        )
+      ) %>%
+      dplyr::select(-tidyselect::contains("species")) %>%
+      dplyr::rename("species" = norank.1) %>%
+      dplyr::select(tidyselect::any_of(c(
+        "TaxID",
+        "superkingdom",
+        "phylum",
+        "class",
+        "order",
+        "family",
+        "genus",
+        "species"
+      ))) %>%
+      dplyr::mutate(
+        species = stringr::str_extract(
+          species,
+          "^[^ ]* [^ ]*"
+        )
+      ) %>%
+      tidyr::pivot_longer(-TaxID,
+        names_to = "level",
+        values_to = "names"
+      ) %>%
+      dplyr::group_by(TaxID) %>%
+      dplyr::mutate(names = ifelse(is.na(names),
+        paste(
+          "unclassified",
+          dplyr::nth(rev(stats::na.omit(names)), 2)
+        ),
+        names
+      )) %>%
+      tidyr::pivot_wider(
+        id_cols = TaxID,
+        names_from = .data$level,
+        values_from = .data$names
+      ) %>%
+      dplyr::ungroup() %>%
+      dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
+      as.data.frame() %>%
+      dplyr::mutate(
+        dplyr::across(
+          .cols = -TaxID,
+          ~ as.character(.x)
+        )
+      ) %>%
+      dplyr::mutate(
+        species = stringr::str_remove_all(
+          species,
+          "'"
         )
       )
-      
-      TaxIDs_fetch <- rentrez::entrez_fetch(
-        db = "taxonomy", web_history = TaxIDs_post,
-        rettype = "xml", retmode = "xml", parsed = T
-      )
-      
-      xml_step <- 1
-      while (xml_step <= nrow(XML::xmlToDataFrame(TaxIDs_fetch))) {
-        xml_lineage <- XML::xmlRoot(TaxIDs_fetch) %>%
-          .[[xml_step]] %>%
-          .[["LineageEx"]] %>%
-          XML::xmlChildren() %>%
-          purrr::set_names(
-            make.unique(
-              as.character(
-                purrr::map(
-            .x = .,
-            .f = ~ XML::xmlValue(.x[[3]]))))
-          ) %>%
-          purrr::map_dfr(
-            .x = .,
-            .f = ~ XML::xmlValue(.x[[2]])
-          ) %>%
-          as.data.frame() %>%
-          dplyr::mutate(
-            TaxID = XML::xmlValue(
-              XML::xmlRoot(TaxIDs_fetch)[[xml_step]][[1]])
-            ) %>%
-          dplyr::mutate(
-            species = XML::xmlValue(
-              XML::xmlRoot(TaxIDs_fetch)[[xml_step]][["ScientificName"]][[1]])
-            ) %>%
-          dplyr::select(.data$TaxID, 
-                        tidyselect::everything())
 
-        lineage <- lineage %>%
-          dplyr::bind_rows(xml_lineage)
-        xml_step <- xml_step + 1
-      }
-    })
-    if(!class(chunk_lin) == "try-error") {
-      pb_assign$tick()
-      lge <- lge + 1
-      if (lge > round(splits)) {
-        message("...Done!")
-      }
-      Sys.sleep(1)
-    } else {
-      lge <- lge
-      Sys.sleep(1)
-    }
-  }
-  lineage <- lineage %>%
-    dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
-    dplyr::select(tidyselect::any_of(c("TaxID", 
-                                       "superkingdom", 
-                                       "phylum",
-                                       "class",
-                                       "order",
-                                       "family",
-                                       "genus",
-                                       "species")))
-
-  if (savedata) {
     if (!is.null(lineage)) {
       if (!is.na(asbd_tbl)) {
         if (!is.null(taxids_src)) {
@@ -168,35 +165,39 @@ txm_lineage <- function(
           asbd_full <- fst::read_fst(asbd_tbl) %>%
             dplyr::bind_rows(lineage) %>%
             dplyr::arrange(.data$TaxID) %>%
-            fst::write_fst(asbd_tbl, 
-                           100)
+            dplyr::distinct(.data$TaxID,
+              .keep_all = T
+            ) %>%
+            fst::write_fst(
+              asbd_tbl,
+              100
+            )
         }
       } else {
         print("Creating dataset")
-        fst::write_fst(lineage, 
-                       asgn_tbl, 
-                       100)
+        fst::write_fst(
+          lineage,
+          asgn_tbl,
+          100
+        )
       }
     }
-  }
-  if (!is.na(asbd_tbl)) {
-    lineage <- lineage %>%
-      dplyr::bind_rows(asbd_tbl_sub)
-  }
+
+    if (!is.na(asbd_tbl)) {
+      lineage <- lineage %>%
+        dplyr::bind_rows(asbd_tbl_sub) %>%
+        dplyr::distinct(TaxID,
+          .keep_all = T
+        )
+    }
   } else {
     lineage <- asbd_tbl_sub
   }
 
-
+  rm(prgrs_bar, envir = .GlobalEnv)
+  
   ##### bind to accessions -----
-  if (bindtoAcc) {
-    taxids <- taxids %>%
-      dplyr::rename_with(~paste("species"), 
-                         tidyselect::starts_with("Organism")) %>%
-      dplyr::select(-tidyselect::starts_with("species")) %>%
-      dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
-      dplyr::inner_join(lineage, by = "TaxID")
-  } else {
-    lineage <- lineage
-  }
+  df_out <- taxids %>%
+    dplyr::select(-.data$Species) %>%
+    dplyr::left_join(lineage, by = "TaxID")
 }

@@ -6,10 +6,8 @@
 \usage{
 txm_lineage(
   taxids,
-  bindtoAcc = T,
   asbd_tbl = NA,
-  asgn_tbl = paste("Dataset_lge", Sys.Date(), ".fst", sep = ""),
-  savedata = T
+  asgn_tbl = paste("Dataset_lge", Sys.Date(), ".fst", sep = "")
 )
 }
 \arguments{
@@ -17,16 +15,11 @@ txm_lineage(
 from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with a single
 column named "TaxID" and optionally a second column named "AccID".}
 
-\item{bindtoAcc}{(Logical) Default TRUE. Bind lineage to accession IDs.}
-
 \item{asbd_tbl}{(Optional) Default NA. Specify the name of the
 pre-assembled database present within the directory.}
 
 \item{asgn_tbl}{(Optional) Default Dataset_lge + system date. Name of a new
 database to be assembled}
-
-\item{savedata}{(Logical) Default TRUE. Should a compiled database be
-saved to directory?}
 }
 \description{
 Obtain full lineage from taxonomic IDs. Splits TaxIDs into batches of 200 and uses

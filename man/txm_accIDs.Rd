@@ -29,8 +29,10 @@ accession IDs in batches of 10,000, appending each cycle to an output file.
 }
 \examples{
 \dontrun{
-taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina)",
-                     db2src = "nucleotide",
-                     out_name = "Fungi_noEnv.seq")
+taxminer::txm_accIDs(
+  text_query = "Fungi [organism] AND vagina)",
+  db2src = "nucleotide",
+  out_name = "Fungi_noEnv.seq"
+)
 }
 }

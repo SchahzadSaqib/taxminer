@@ -9,44 +9,48 @@ txm_ecosrc(
   filt_host = NA,
   filt_site = NA,
   filt_negt = NA,
+  alt_tbl_path = NULL,
   do_filt = T,
   asbd_tbl = NA,
   asgn_tbl = paste("Dataset_", Sys.Date(), ".fst", sep = ""),
-  savedata = T,
   sys.break = 1
 )
 }
 \arguments{
-\item{hit_tbl}{(Required) Default NULL. Output table obtained from \link[taxminer]{txm_align}. Alternatively,
-A data.frame with at least 3 columns
-\itemize{
-\item ID: sequence/hit ID numbers.
-\item AccID: Accession IDs.
-}}
+\item{hit_tbl}{(Required) Default NULL. Output table obtained
+from \link[taxminer]{txm_align}.}
 
 \item{filt_host}{(Optional) Default NA. Filter annotations by host}
 
-\item{filt_site}{(Optional) Default NA. Filter annotations by body site or environment.}
+\item{filt_site}{(Optional) Default NA. Filter annotations by body site or
+environment.}
 
-\item{filt_negt}{(Optional) Default NA. Disregard annotations that contain these terms.}
+\item{filt_negt}{(Optional) Default NA. Disregard annotations that contain
+these terms.}
 
-\item{do_filt}{(Logical) Default TRUE. Perform filtration using the word banks. If FALSE the output will
-contain all accession IDs and the extracted information associated to them.}
+\item{alt_tbl_path}{(Required) Default NULL. Full path to silva and RDP
+annotations.}
 
-\item{asbd_tbl}{(Optional) Default NA. Specify the name of the pre-compiled database
-present within the directory.}
+\item{do_filt}{(Logical) Default TRUE. Perform filtration using the word
+banks. If FALSE the output will contain all accession IDs and the extracted
+information associated to them.}
 
-\item{asgn_tbl}{(Optional) Default Dataset + system date. Name of a new compiled database
-to be assigned}
+\item{asbd_tbl}{(Optional) Default NA. Specify the name of the pre-compiled
+database present within the directory.}
 
-\item{savedata}{(Logical) Default TRUE. Should a compiled database be saved to directory?}
+\item{asgn_tbl}{(Optional) Default Dataset + system date. Name of a new
+compiled database to be assigned}
 
 \item{sys.break}{(integer) Default 1. Amount of time, in seconds, that the
 system is paused between iterations. This is handy with larger
 queries to reduce to load on the NCBI servers.}
 }
 \description{
-Extract information from NCBI nucleotide and PubMed databases, attaching ecosystem specificity to each
-accession ID. Different combinations of word banks are used to scan through this data and apply the filtration
-criteria. The accession IDs are split into batches of 200, and \link[rentrez]{rentrez} is used to communicate with the NCBI databases.
+Extract information from NCBI nucleotide and PubMed databases, attaching
+ecosystem specificity to each accession ID. Different combinations of word
+banks are used to scan through this data and apply the filtration
+criteria. The accession IDs are split into batches of 200,
+and \link[rentrez]{rentrez} is used to communicate with NCBI.
+An annotation score is calculated using this information and the consensus
+between the annotations methods/databases.
 }
