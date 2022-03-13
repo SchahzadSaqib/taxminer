@@ -146,7 +146,7 @@ txm_ecosrc <- function(hit_tbl,
 
       print("Retrieving Accession ID data")
 
-      df_summ_t <- ids_src %>%
+      df_summ <- ids_src %>%
         purrr::map_dfr(~ get_esumm(.x, 
                                    sys.break)) %>%
         dplyr::mutate(meta = concat(.)) %>%
