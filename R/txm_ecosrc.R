@@ -147,7 +147,8 @@ txm_ecosrc <- function(hit_tbl,
       print("Retrieving Accession ID data")
 
       df_summ_t <- ids_src %>%
-        purrr::map_dfr(~ get_esumm(.x)) %>%
+        purrr::map_dfr(~ get_esumm(.x, 
+                                   sys.break)) %>%
         dplyr::mutate(meta = concat(.)) %>%
         dplyr::select(-c(
           .data$SubType,
@@ -194,7 +195,8 @@ txm_ecosrc <- function(hit_tbl,
     print("Retrieving PMIDs")
 
     pmids <- pmids %>%
-      purrr::lmap(~ get_pbids(.x)) %>%
+      purrr::lmap(~ get_pbids(.x, 
+                              sys.break)) %>%
       purrr::prepend(to_rm) %>%
       dplyr::bind_rows() %>%
       dplyr::group_by(.data$AccID) %>%
@@ -235,7 +237,8 @@ txm_ecosrc <- function(hit_tbl,
       print("Retrieving PubMed data")
 
       pbdt <- pmids_src %>%
-        purrr::lmap(~ get_pbdt(.x)) %>%
+        purrr::lmap(~ get_pbdt(.x, 
+                               sys.break)) %>%
         purrr::map_dfr(.f = dplyr::bind_rows) %>%
         dplyr::right_join(pmids,
           by = "PMID"

@@ -585,7 +585,8 @@ rm_prv <- function(x) {
   }
 }
 
-get_esumm <- function(accID) {
+get_esumm <- function(accID, 
+                      sys.break = 1) {
   chunk_ID <- try({
     ids_post <- rentrez::entrez_post(
       db = "nuccore",
@@ -639,7 +640,8 @@ get_esumm <- purrr::insistently(
   quiet = F
 )
 
-get_pbids <- function(accID) {
+get_pbids <- function(accID,
+                      sys.break = 1) {
   chunk_link <- try({
     ids_elink <- rentrez::entrez_link(
       db = "pubmed",
@@ -694,7 +696,8 @@ get_pbids <- purrr::insistently(
   quiet = F
 )
 
-get_pbdt <- function(pmid) {
+get_pbdt <- function(pmid,
+                     sys.break = 1) {
   chunk_pub <- try({
     pmids_post <- rentrez::entrez_post(
       db = "pubmed",
@@ -824,7 +827,6 @@ get_pbdt <- function(pmid) {
   }
 }
 
-
 get_pbdt <- purrr::insistently(
   get_pbdt,
   rate = purrr::rate_delay(10,
@@ -917,7 +919,6 @@ get_lge <- function(x) {
     stop()
   }
 }
-
 
 get_lge <- purrr::insistently(
   get_lge,
