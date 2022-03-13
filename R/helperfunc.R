@@ -1,17 +1,16 @@
 utils::globalVariables(c(
   "tab_path",
-  "tab_out"
+  "tab_out",
+  "prgrs_bar"
 ))
 
 #' @importFrom rlang .data
 
 
 ##### Word banks -----
-#' Word banks
-#'
-#' Full list of word banks being used for text mining based filtration
-#'
-#' @export
+# Word banks
+#
+# Full list of word banks being used for text mining based filtration
 Word_banks <- list(
   human = c(
     "human", "humans", "men", "man", "woman", "women", "girl",
