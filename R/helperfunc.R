@@ -703,7 +703,7 @@ get_pbdt <- function(pmid,
       db = "pubmed",
       id = purrr::flatten(pmid)$PMID
     )
-
+    
     pmids_fetch <- rentrez::entrez_fetch(
       db = "pubmed",
       web_history = pmids_post,
@@ -711,8 +711,8 @@ get_pbdt <- function(pmid,
       retmode = "xml",
       parsed = F
     )
-
-    pmids_clean <- xml2::read_xml(pmids_fetch) %>%
+    
+    pmids_cn1 <- xml2::read_xml(pmids_fetch) %>%
       xml2::xml_children() %>%
       xml2::as_list() %>%
       purrr::modify_depth(
@@ -721,7 +721,9 @@ get_pbdt <- function(pmid,
           .x,
           names(.x) %in% "MedlineCitation"
         )
-      ) %>%
+      )
+    
+    pmids_cn2 <- pmids_cn1 %>%
       purrr::modify_depth(
         .depth = 2,
         .f = ~ purrr::keep(
@@ -732,7 +734,9 @@ get_pbdt <- function(pmid,
             "MeshHeadingList"
           )
         )
-      ) %>%
+      )
+    
+    pmids_cn3 <- pmids_cn2 %>%
       purrr::modify_depth(
         .depth = 2,
         .f = ~ purrr::modify_at(
@@ -747,7 +751,8 @@ get_pbdt <- function(pmid,
             )
           )
         )
-      ) %>%
+      )
+    pmids_cn4 <- pmids_cn3 %>%
       purrr::modify_depth(
         .depth = 2,
         .f = ~ purrr::modify_at(
@@ -762,7 +767,9 @@ get_pbdt <- function(pmid,
             )
           )
         )
-      ) %>%
+      )
+    
+    pmids_cn5 <- pmids_cn4 %>%
       purrr::modify_depth(
         .depth = 2,
         .f = ~ purrr::modify_at(
@@ -774,7 +781,9 @@ get_pbdt <- function(pmid,
               purrr::reduce(paste)
           }
         )
-      ) %>%
+      )
+    
+    pmids_cn6 <- pmids_cn5 %>%
       purrr::modify_depth(
         .depth = 2,
         .f = ~ purrr::modify_at(
@@ -790,6 +799,12 @@ get_pbdt <- function(pmid,
             }
           )
         )
+      )
+    
+    pmids_cn7 <- pmids_cn6 %>%
+      purrr::modify_depth(
+        .depth = 3, 
+        .f = ~purrr::map(.x, ~purrr::pluck(.x, 1))
       ) %>%
       purrr::map_dfr(.f = bind_cols) %>%
       purrr::set_names(
@@ -817,7 +832,7 @@ get_pbdt <- function(pmid,
       )) %>%
       base::list()
   })
-
+  
   if (!class(chunk_pub) == "try-error") {
     prgrs_bar$tick()
     Sys.sleep(sys.break)
