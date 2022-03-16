@@ -346,7 +346,7 @@ txm_align <- function(seq_in,
   rm(
     list = stringr::str_subset(
       ls(pos = .GlobalEnv),
-      "owrt"
+      "owrt|acsn"
     ),
     envir = .GlobalEnv
   )
