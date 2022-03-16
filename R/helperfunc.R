@@ -752,6 +752,7 @@ get_pbdt <- function(pmid,
           )
         )
       )
+    
     pmids_cn4 <- pmids_cn3 %>%
       purrr::modify_depth(
         .depth = 2,
@@ -789,9 +790,9 @@ get_pbdt <- function(pmid,
         .f = ~ purrr::modify_at(
           .x,
           .at = "Article",
-          .f = ~ purrr::modify_at(
+          .f = ~ purrr::modify_depth(
             .x,
-            .at = "Abstract",
+            .depth = 1,
             .f = function(x) {
               x <- x %>%
                 purrr::flatten() %>%
@@ -799,12 +800,6 @@ get_pbdt <- function(pmid,
             }
           )
         )
-      )
-    
-    pmids_cn7 <- pmids_cn6 %>%
-      purrr::modify_depth(
-        .depth = 3, 
-        .f = ~purrr::map(.x, ~purrr::pluck(.x, 1))
       ) %>%
       purrr::map_dfr(.f = bind_cols) %>%
       purrr::set_names(
