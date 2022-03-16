@@ -180,7 +180,7 @@ check_align <- function(db_name,
           )
           base::assign("acsn_list", 
                        acsn_list, 
-                       .GlobalEnv)
+                       envir = .GlobalEnv)
         } else {
           stop(print(
             paste(
@@ -197,7 +197,7 @@ check_align <- function(db_name,
         )
         base::assign("acsn_list", 
                      acsn_list, 
-                     .GlobalEnv)
+                     envir = .GlobalEnv)
 
         if (!file.exists(
           here::here(acsn_path, acsn_list)
