@@ -174,6 +174,7 @@ txm_align <- function(seq_in,
         acsn_path,
         acsn_list
       ),
+      ".bsl",
       sep = ""
     )
 
@@ -346,7 +347,7 @@ txm_align <- function(seq_in,
   rm(
     list = stringr::str_subset(
       ls(pos = .GlobalEnv),
-      "owrt|acsn"
+      "owrt"
     ),
     envir = .GlobalEnv
   )
