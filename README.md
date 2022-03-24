@@ -9,43 +9,27 @@
 Taxonomic annotations - BLAST alignment and text-mining based filtration
 in R
 
+\*In March 2022, annotation scores and GNU parallel were introduced in
+the normal workflow.
+
 ## Installation
 
-You can install the released version of taxminer from
-[Github](https://github.com/) with:
+The latest version of taxminer can be installed as follows:
 
 ``` r
 devtools::install_github("SchahzadSaqib/taxminer")
 ```
 
-## Example
+## References
 
-``` r
-library(taxminer)
-dir.create("demo")
-## extracting accession numbers
-taxminer::txm_accIDs(text_query = "Fungi [organism] AND vagina",
-                    db2src = "nucleotide",
-                    out_name = "demo/Fungi_noEnv.seq")
-#> Done! - Found 339 IDs
-```
+-   rentrez - Winter DJ (2017). “rentrez: an R package for the NCBI
+    eUtils API.” The R Journal, 9, 520–526.
 
-``` r
-get_accIds <- readr::read_delim("demo/Fungi_noEnv.seq", delim = "\n", col_names = "AccIDs", col_types = readr::cols(AccIDs = readr::col_character()))
-get_accIds
-#> # A tibble: 339 x 1
-#>    AccIDs    
-#>    <chr>     
-#>  1 LC601978.1
-#>  2 MW559947.1
-#>  3 CP048242.1
-#>  4 CP048241.1
-#>  5 CP048240.1
-#>  6 CP048239.1
-#>  7 CP048238.1
-#>  8 CP048237.1
-#>  9 CP048236.1
-#> 10 CP048235.1
-#> # ... with 329 more rows
-unlink("demo", recursive = T)
-```
+-   dada2 - Callahan BJ, McMurdie PJ, Rosen MJ, Han AW, Johnson AJA,
+    Holmes SP (2016). “DADA2: High-resolution sample inference from
+    Illumina amplicon data.” Nature Methods, 13, 581-583. doi:
+    10.1038/nmeth.3869.
+
+-   GNU parallel - Tange, O. (2022, February 22). GNU Parallel 20220222
+    (‘Donetsk Luhansk’). Zenodo.
+    <https://doi.org/10.5281/zenodo.6213471>

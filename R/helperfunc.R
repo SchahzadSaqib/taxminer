@@ -103,7 +103,7 @@ check_align <- function(db_name,
         tab_path,
         paste("Alignment_",
           tab_out,
-          ".csv",
+          ".tsv",
           sep = ""
         )
       )
@@ -111,6 +111,18 @@ check_align <- function(db_name,
     owrt <- utils::askYesNo(
       "Blast annotations exist in the specified directory. Overwrite?"
     )
+    if (owrt) {
+      unlink(
+        here::here(
+        tab_path,
+        paste("Alignment_",
+              tab_out,
+              ".tsv",
+              sep = ""
+        )
+      )
+      )
+    }
   } else {
     owrt <- TRUE
   }
@@ -348,64 +360,238 @@ check_lineage <- function(taxids,
 
 
 ##### txm_align miscellaneous functions -----
-mk_fasta <- function(seq,
-                     path,
-                     out) {
-  ASVs <- dada2::getSequences(seq) %>%
-    base::as.data.frame() %>%
-    purrr::set_names("ASVs") %>%
-    dplyr::mutate(ID = 1:nrow(.)) %>%
-    dplyr::select(
-      .data$ID,
-      .data$ASVs
-    )
+batch <- function(obj,
+                  wth_each) {
+  ct_pcs <- round(nrow(obj) / wth_each)
+  if (ct_pcs < 1) ct_pcs <- 1
+  
+  out <- obj %>%
+    dplyr::mutate(batch = rep(1:ct_pcs,
+                              each = ct_pcs,
+                              length.out = nrow(.)
+    )) %>%
+    dplyr::group_by(.data$batch) %>%
+    tidyr::nest() %>%
+    dplyr::pull()
+}
 
-  base::assign("ASVs",
-    ASVs,
-    envir = .GlobalEnv
-  )
-
-  FASTA_file <- ASVs %>%
+mk_fasta <- function(x) {
+  x <- x %>%
     dplyr::mutate(ID = paste(">",
-      ID,
-      sep = ""
+                             ID,
+                             sep = ""
     )) %>%
     base::as.list() %>%
     purrr::pmap(~ paste(.x,
-      .y,
-      sep = "\n"
+                        .y,
+                        sep = "\n"
     )) %>%
     base::unlist()
+}
 
-  readr::write_lines(
-    FASTA_file,
-    file = paste(
-      here::here(
-        path,
-        out
-      ),
-      ".fa",
-      sep = ""
-    )
+trmnl_cmd <- function(task,
+                      db_path,
+                      db_name,
+                      tab_path,
+                      threads,
+                      pctidt,
+                      acsn_path,
+                      acsn_list,
+                      max_out, 
+                      run_prl) {
+  
+  prl <- paste("ls", 
+               here::here(tab_path, 
+                          "*.fa"), 
+               "| parallel -a -")
+  
+  blst_cmd <- paste("blastn -task ",
+                    task,
+                    sep = ""
   )
+  
+  db <- paste("-db ",
+              here::here(
+                db_path,
+                db_name
+              ),
+              sep = ""
+  )
+  
+  query <- paste("-query {}"
+  )
+  
+  output <- paste("-out ",
+                  here::here(
+                    tab_path,
+                    "Alignment_{/.}.tsv"
+                  ),
+                  sep = ""
+  )
+  
+  parameters <- paste("-num_threads",
+                      threads,
+                      "-perc_identity",
+                      pctidt,
+                      sep = " "
+  )
+  
+  acsn_limit <- paste("-seqidlist ",
+                      here::here(
+                        acsn_path,
+                        acsn_list
+                      ),
+                      ".bsl",
+                      sep = ""
+  )
+  
+  out_fmt <- paste(
+    "-max_target_seqs",
+    max_out,
+    "-outfmt \"'6 qacc saccver staxids sscinames bitscore evalue qcovs pident'\""
+  )
+  
+  cmd <- paste(
+    prl,
+    blst_cmd,
+    db,
+    query,
+    output,
+    if (!is.null(acsn_list)) {
+      acsn_limit
+    },
+    parameters,
+    out_fmt,
+    sep = " "
+  )
+}
 
-  if (file.size(
-    paste(
-      here::here(
-        path,
-        out
-      ),
-      ".fa",
-      sep = ""
-    )
-  ) == 0) {
-    stop(print("Empty query object provided"))
-  } else {
-    print(paste(nrow(ASVs),
-      " sequences provided",
-      sep = ""
+
+trmnl_run <- function(x) {
+  blst <- rstudioapi::terminalExecute(x,
+                                      show = F
+  )
+}
+
+
+trmnl_exit <- function(x) {
+  while (
+    is.null(
+      rstudioapi::terminalExitCode(x)
+    )) {
+    Sys.sleep(0.1)
+  }
+  
+  if (!rstudioapi::terminalExitCode(x) == 0) {
+    stop(print(
+      paste(
+        "Blast ran into an error - Code: ",
+        rstudioapi::terminalExitCode(x),
+        " - Please check terminal for details"
+      )
     ))
   }
+  rstudioapi::terminalKill(x)
+}
+
+check_files <- function(x) {
+  if (file.size(x) == 0) {
+    stop(print("Empty query object provided"))
+  }
+}
+
+
+blast_run <- function(seq,
+                      task,
+                      db_path,
+                      db_name,
+                      tab_path,
+                      tab_out,
+                      threads,
+                      pctidt,
+                      acsn_path,
+                      acsn_list,
+                      max_out, 
+                      chunks) {
+  temp <- here::here(
+    tab_path,
+    "temp"
+  )
+  
+  if (!dir.exists(temp)) {
+    dir.create(temp,
+               recursive = TRUE
+    )
+  }
+  
+  FASTA_file <- seq %>%
+    base::data.frame() %>%
+    batch(ceiling(nrow(.) / chunks)) %>%
+    purrr::map(~ mk_fasta(.x)) %>%
+    purrr::imap(
+      ~ readr::write_lines(
+        .x,
+        file = paste(
+          here::here(
+            temp,
+            "FA_splt"
+          ),
+          .y,
+          ".fa",
+          sep = ""
+        )
+      )
+    )
+  
+  prgrs_bar$tick(len = -1)
+  prgrs_bar$tick()
+  
+  fsts <- list.files(
+    path = temp,
+    pattern = "FA_splt.*fa",
+    full.names = T
+  ) %>%
+    as.list() %>%
+    purrr::iwalk(~ check_files(.x))
+  
+  run <- trmnl_cmd(
+    task = task,
+    db_path = db_path,
+    db_name = db_name,
+    tab_path = temp,
+    threads = threads,
+    pctidt = pctidt,
+    acsn_path = acsn_path,
+    acsn_list = acsn_list,
+    max_out = max_out
+  ) %>%
+    trmnl_run() %>%
+    trmnl_exit()
+  prgrs_bar$tick()
+  
+  concat <- rstudioapi::terminalExecute(
+    paste(
+      "cat ",
+      temp,
+      "/*.tsv >> ",
+      here::here(
+        tab_path,
+        paste("Alignment_",
+              tab_out,
+              sep = ""
+        )
+      ),
+      ".tsv",
+      sep = ""
+    ),
+    show = F
+  )
+  
+  trmnl_exit(concat)
+  
+  unlink(temp,
+         recursive = T
+  )
 }
 
 # Only needed until Fannyhessea vaginae is updated in silva and RDP databases
@@ -528,11 +714,11 @@ annot_score <- function(x, y, z) {
 new_bar <- function(len,
                     msg = "downloading") {
   progress::progress_bar$new(
-    format = paste(msg, " [:bar]",
+    format = paste(msg, " (:spin) [:bar]",
       ":current/:total",
       "(:percent) eta:",
       ":eta elapsed:",
-      ":elapsed",
+      ":elapsedfull",
       sep = " "
     ),
     total = len,

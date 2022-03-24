@@ -11,14 +11,14 @@ txm_lineage(
 )
 }
 \arguments{
-\item{taxids}{(Required) Output table obtained
+\item{taxids}{(data.frame) \strong{Required} Output table obtained
 from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with a single
 column named "TaxID" and optionally a second column named "AccID".}
 
-\item{asbd_tbl}{(Optional) Default NA. Specify the name of the
+\item{asbd_tbl}{(String) Default NA. Specify the name of the
 pre-assembled database present within the directory.}
 
-\item{asgn_tbl}{(Optional) Default Dataset_lge + system date. Name of a new
+\item{asgn_tbl}{(String) Default Dataset_lge + system date. Name of a new
 database to be assembled}
 }
 \description{

@@ -21,34 +21,36 @@ txm_align(
   acsn_check = F,
   show = F,
   run_blst = T,
+  batches = 1,
+  chunks = 1,
   qcvg = 98,
   pctidt = 98,
   max_out = 500
 )
 }
 \arguments{
-\item{seq_in}{(Required) All seq_in types accepted by
+\item{seq_in}{\strong{Required} All input types accepted by
 \link[dada2]{getSequences}.}
 
-\item{db_path}{(Required) Full path for local BLAST database being used for
+\item{db_path}{(String) \strong{Required} Full path for local BLAST database being used for
 alignment.}
 
-\item{db_name}{(Required) Name of BLAST database.}
+\item{db_name}{(String) \strong{Required} Name of BLAST database.}
 
-\item{tab_out}{(Optional) Default "Output" + System date. Specify name of
+\item{tab_out}{(String) Default "Output" + System date. Specify name of
 the output files.}
 
-\item{tab_path}{(Optional) Default "." (current working directory). Specify
+\item{tab_path}{(String) Default "." (current working directory). Specify
 full output path for results.}
 
-\item{acsn_list}{(Optional) Default NULL. Full path to a list of accession
+\item{acsn_list}{(String) Default NULL. Full path to a list of accession
 IDs that will be used to restrict the BLAST database (-seqidlist), which
 is highly recommended for large databases such as "nt/nr". This can be
 obtained using the \link[taxminer]{txm_accIDs} function provided within this
 package. Further information regarding search limitations is available on
 \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST user manual}}
 
-\item{acsn_path}{(Optional) Default "." (current working directory). Specify
+\item{acsn_path}{(String) Default "." (current working directory). Specify
 full path to the accession ID list.}
 
 \item{alt_path}{(Required) Default NULL. Path to SILVA and RDP databases.
@@ -66,18 +68,18 @@ Pre-formatted dada2 databases are recommended:
 and RDP databases using \link[dada2]{assignTaxonomy} for up to genus level
 annotations followed by \link[dada2]{addSpecies} for assigning species.}
 
-\item{asbd_tbl_lge}{(Optional) Default NA. Full path and name of a
+\item{asbd_tbl_lge}{(String) Default NA. Full path and name of a
 pre-compiled table to be used for lineage assignment}
 
-\item{asgn_tbl_lge}{(Optional) Default Dataset_lge + system date. Full path
+\item{asgn_tbl_lge}{(String) Default Dataset_lge + system date. Full path
 and name of a new data set to be created.}
 
-\item{task}{(Optional) Default "megablast". Other possible tasks can be
+\item{task}{(String) Default "megablast". Other possible tasks can be
 found here:
 \href{https://www.ncbi.nlm.nih.gov/books/NBK569839/#usrman_BLAST_feat.Tasks}{Tasks}}
 
-\item{threads}{(Optional) Default 1. Number of threads assigned to BLAST
-alignment.}
+\item{threads}{(>0) Default 1. Number of threads assigned to BLAST
+alignment. Set these in accordance to your hardware.}
 
 \item{acsn_check}{(Logical) Default FALSE. If an accession ID list is
 provided, BLASTDB v5 requires it to be pre-processed (blastdb_aliastool)
@@ -86,14 +88,27 @@ unprocessed accession ID list is specified.}
 
 \item{show}{(Logical) Default FALSE. Switch from console to terminal?}
 
-\item{run_blst}{(Logical) Default TRUE. Set to FALSE if an existing
-comma-delimited alignment file is present in the directory.}
+\item{run_blst}{(Logical) Default TRUE. Run BLAST alignment?}
 
-\item{qcvg}{(Optional) Default 98 (\%). Threshold for query coverage.}
+\item{batches}{(>0) Default 1. Should the sequences be aligned in batches?
+\itemize{
+\item 1 = no batches
+\item >1 = total sequences/batches
+}}
 
-\item{pctidt}{(Optional) Default 98 (\%). Threshold for percentage identity.}
+\item{chunks}{(>0) Default 1. Should each batch of sequences be split into
+further chunks to be aligned in parallel?
+\itemize{
+\item 1 = no further chunks
+\item >1 = each batch is further divided to the closest number of chunks
+possible and ran in parallel using GNU parallel
+}}
 
-\item{max_out}{(Optional) Default 500. Maximum number of alignments
+\item{qcvg}{(0-100) Default 98 (\%). Threshold for query coverage.}
+
+\item{pctidt}{(0-100) Default 98 (\%). Threshold for percentage identity.}
+
+\item{max_out}{(>0) Default 500. Maximum number of alignments
 ("-max_target_seqs"). Higher values are recommended when using large
 databases such as "nt/nr".}
 }

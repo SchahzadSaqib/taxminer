@@ -11,12 +11,12 @@ utils::globalVariables(c(
 #' web history server, followed by using
 #' \link[rentrez:entrez_fetch]{entrez_fetch} to obtain xml files.
 #'
-#' @param taxids (Required) Output table obtained
+#' @param taxids (data.frame) **Required** Output table obtained
 #' from \link[taxminer]{txm_ecosrc}. Alternatively, a data.frame with a single
 #' column named "TaxID" and optionally a second column named "AccID".
-#' @param asbd_tbl (Optional) Default NA. Specify the name of the
+#' @param asbd_tbl (String) Default NA. Specify the name of the
 #' pre-assembled database present within the directory.
-#' @param asgn_tbl (Optional) Default Dataset_lge + system date. Name of a new
+#' @param asgn_tbl (String) Default Dataset_lge + system date. Name of a new
 #' database to be assembled
 #'
 #' @export
@@ -161,6 +161,7 @@ txm_lineage <- function(taxids,
     if (!is.null(lineage)) {
       if (!is.na(asbd_tbl)) {
         if (!is.null(taxids_src)) {
+          rm(prgrs_bar, envir = .GlobalEnv)
           print("Writing new data to Pre-compiled dataset")
           asbd_full <- fst::read_fst(asbd_tbl) %>%
             dplyr::bind_rows(lineage) %>%
@@ -194,7 +195,6 @@ txm_lineage <- function(taxids,
     lineage <- asbd_tbl_sub
   }
 
-  rm(prgrs_bar, envir = .GlobalEnv)
   
   ##### bind to accessions -----
   df_out <- taxids %>%

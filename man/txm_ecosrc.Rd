@@ -17,40 +17,44 @@ txm_ecosrc(
 )
 }
 \arguments{
-\item{hit_tbl}{(Required) Default NULL. Output table obtained
+\item{hit_tbl}{(data.frame) \strong{Required} Default NULL. Output table obtained
 from \link[taxminer]{txm_align}.}
 
-\item{filt_host}{(Optional) Default NA. Filter annotations by host}
+\item{filt_host}{(String) Default NA. Filter annotations by host}
 
-\item{filt_site}{(Optional) Default NA. Filter annotations by body site or
+\item{filt_site}{(String) Default NA. Filter annotations by body site or
 environment.}
 
-\item{filt_negt}{(Optional) Default NA. Disregard annotations that contain
+\item{filt_negt}{(String) Default NA. Disregard annotations that contain
 these terms.}
 
-\item{alt_tbl_path}{(Required) Default NULL. Full path to silva and RDP
-annotations.}
+\item{alt_tbl_path}{(String) \strong{Required} Default NULL. Full path to silva
+and RDP annotation outputs.}
 
 \item{do_filt}{(Logical) Default TRUE. Perform filtration using the word
 banks. If FALSE the output will contain all accession IDs and the extracted
 information associated to them.}
 
-\item{asbd_tbl}{(Optional) Default NA. Specify the name of the pre-compiled
+\item{asbd_tbl}{(String) Default NA. Specify the name of the pre-compiled
 database present within the directory.}
 
-\item{asgn_tbl}{(Optional) Default Dataset + system date. Name of a new
+\item{asgn_tbl}{(String) Default Dataset + system date. Name of a new
 compiled database to be assigned}
 
-\item{sys.break}{(integer) Default 1. Amount of time, in seconds, that the
+\item{sys.break}{(>0) Default 1. Amount of time, in seconds, that the
 system is paused between iterations. This is handy with larger
-queries to reduce to load on the NCBI servers.}
+queries to reduce the load on the NCBI servers.}
 }
 \description{
 Extract information from NCBI nucleotide and PubMed databases, attaching
 ecosystem specificity to each accession ID. Different combinations of word
-banks are used to scan through this data and apply the filtration
+banks are used to scan through the data and apply the filtration
 criteria. The accession IDs are split into batches of 200,
 and \link[rentrez]{rentrez} is used to communicate with NCBI.
-An annotation score is calculated using this information and the consensus
-between the annotations methods/databases.
+For each annotation hit a "score" is calculated based on the consensus
+between the superkingdom-species level lineage obtained from
+BLAST + Silva + RDP and the completeness of the available
+ecosystem/publication information.
+Uses a NCBI api key is highly recommended.
+\href{  https://cran.r-project.org/web/packages/rentrez/vignettes/rentrez_tutorial.html#rate-limiting-and-api-keys}{rentrez vignette}
 }

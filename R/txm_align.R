@@ -23,27 +23,27 @@ utils::globalVariables(c(
 #' annotations that are further used for annotations scores.
 #'
 #' @name txm_align
-#' @param seq_in (Required) All seq_in types accepted by
+#' @param seq_in **Required** All input types accepted by
 #' \link[dada2]{getSequences}.
-#' @param db_path (Required) Full path for local BLAST database being used for
+#' @param db_path (String) **Required** Full path for local BLAST database being used for
 #' alignment.
-#' @param db_name (Required) Name of BLAST database.
-#' @param task (Optional) Default "megablast". Other possible tasks can be
+#' @param db_name (String) **Required** Name of BLAST database.
+#' @param task (String) Default "megablast". Other possible tasks can be
 #' found here:
 #' \href{https://www.ncbi.nlm.nih.gov/books/NBK569839/#usrman_BLAST_feat.Tasks}{Tasks}
-#' @param tab_out (Optional) Default "Output" + System date. Specify name of
+#' @param tab_out (String) Default "Output" + System date. Specify name of
 #' the output files.
-#' @param tab_path (Optional) Default "." (current working directory). Specify
+#' @param tab_path (String) Default "." (current working directory). Specify
 #' full output path for results.
-#' @param threads (Optional) Default 1. Number of threads assigned to BLAST
-#' alignment.
-#' @param acsn_list (Optional) Default NULL. Full path to a list of accession
+#' @param threads (>0) Default 1. Number of threads assigned to BLAST
+#' alignment. Set these in accordance to your hardware. 
+#' @param acsn_list (String) Default NULL. Full path to a list of accession
 #' IDs that will be used to restrict the BLAST database (-seqidlist), which
 #' is highly recommended for large databases such as "nt/nr". This can be
 #' obtained using the \link[taxminer]{txm_accIDs} function provided within this
 #' package. Further information regarding search limitations is available on
 #' \href{https://www.ncbi.nlm.nih.gov/books/NBK279673/}{BLAST user manual}
-#' @param acsn_path (Optional) Default "." (current working directory). Specify
+#' @param acsn_path (String) Default "." (current working directory). Specify
 #' full path to the accession ID list.
 #' @param acsn_check (Logical) Default FALSE. If an accession ID list is
 #' provided, BLASTDB v5 requires it to be pre-processed (blastdb_aliastool)
@@ -62,16 +62,27 @@ utils::globalVariables(c(
 #' }
 #' Pre-formatted dada2 databases are recommended:
 #' \href{https://benjjneb.github.io/dada2/training.html}{dada2 fasta files}
-#' @param asbd_tbl_lge (Optional) Default NA. Full path and name of a
+#' @param asbd_tbl_lge (String) Default NA. Full path and name of a
 #' pre-compiled table to be used for lineage assignment
-#' @param asgn_tbl_lge (Optional) Default Dataset_lge + system date. Full path
+#' @param asgn_tbl_lge (String) Default Dataset_lge + system date. Full path
 #' and name of a new data set to be created.
 #' @param show (Logical) Default FALSE. Switch from console to terminal?
-#' @param run_blst (Logical) Default TRUE. Set to FALSE if an existing
-#' comma-delimited alignment file is present in the directory.
-#' @param qcvg (Optional) Default 98 (%). Threshold for query coverage.
-#' @param pctidt (Optional) Default 98 (%). Threshold for percentage identity.
-#' @param max_out (Optional) Default 500. Maximum number of alignments
+#' @param run_blst (Logical) Default TRUE. Run BLAST alignment?
+#' @param batches (>0) Default 1. Should the sequences be aligned in batches? 
+#' \itemize{
+#'   \item 1 = no batches
+#'   \item >1 = total sequences/batches
+#' }
+#' @param chunks (>0) Default 1. Should each batch of sequences be split into
+#' further chunks to be aligned in parallel? 
+#' \itemize{
+#'   \item 1 = no further chunks
+#'   \item >1 = each batch is further divided to the closest number of chunks 
+#'   possible and ran in parallel using GNU parallel
+#' }
+#' @param qcvg (0-100) Default 98 (%). Threshold for query coverage.
+#' @param pctidt (0-100) Default 98 (%). Threshold for percentage identity.
+#' @param max_out (>0) Default 500. Maximum number of alignments
 #' ("-max_target_seqs"). Higher values are recommended when using large
 #' databases such as "nt/nr".
 #' @export
@@ -98,11 +109,13 @@ txm_align <- function(seq_in,
                       acsn_check = F,
                       show = F,
                       run_blst = T,
+                      batches = 1,
+                      chunks = 1,
                       qcvg = 98,
                       pctidt = 98,
                       max_out = 500) {
 
-  ##### Data prep -----
+  ##### Input checks -----
   check_align(
     db_name,
     db_path,
@@ -117,112 +130,54 @@ txm_align <- function(seq_in,
     alt_path
   )
 
-  mk_fasta(
-    seq_in,
-    tab_path,
-    tab_out
-  )
-
+  ##### BLAST prep and run -----
   if (run_blst & owrt) {
 
-    ##### Create BLAST command and run -----
-    blst_cmd <- paste("blastn -task ",
-      task,
-      sep = ""
+    ASVs <- dada2::getSequences(seq_in) %>%
+      base::as.data.frame() %>%
+      purrr::set_names("ASVs") %>%
+      dplyr::mutate(ID = 1:nrow(.)) %>%
+      dplyr::select(
+        .data$ID,
+        .data$ASVs
+      )
+    
+    ASV_splt <- batch(ASVs, 
+                      batches)
+    
+    print(
+      paste(
+        nrow(ASVs), 
+        " sequences will be aligned - batches: ", 
+        length(ASV_splt),
+        ", chunks: ",
+        chunks, 
+        sep = "")
     )
-
-    db <- paste("-db ",
-      here::here(
-        db_path,
-        db_name
-      ),
-      sep = ""
-    )
-
-    query <- paste("-query ",
-      here::here(
-        tab_path,
-        paste(tab_out,
-          ".fa",
-          sep = ""
-        )
-      ),
-      sep = ""
-    )
-
-    output <- paste("-out ",
-      here::here(
-        tab_path,
-        paste("Alignment_",
-          tab_out,
-          ".csv",
-          sep = ""
-        )
-      ),
-      sep = ""
-    )
-
-    parameters <- paste("-num_threads",
-      threads,
-      "-perc_identity",
-      pctidt,
-      sep = " "
-    )
-
-    accession_limit <- paste("-seqidlist ",
-      here::here(
+    
+    prgrs_bar <- new_bar(length(ASV_splt), 
+                         "aligning")
+    assign("prgrs_bar", 
+           prgrs_bar, 
+           envir = .GlobalEnv)
+    
+    blst_run <- ASV_splt %>%
+      purrr::iwalk(~ blast_run(
+        .x, 
+        task, 
+        db_path, 
+        db_name, 
+        tab_path, 
+        tab_out, 
+        threads, 
+        pctidt, 
         acsn_path,
-        acsn_list
-      ),
-      ".bsl",
-      sep = ""
-    )
-
-    output_format <- paste(
-      "-max_target_seqs",
-      max_out,
-      "-outfmt '6 qacc sgi saccver staxids sscinames bitscore qcovs evalue pident'"
-    )
-
-    trmnl_cmd <- paste(blst_cmd,
-      db,
-      query,
-      output,
-      if (!is.null(acsn_list)) {
-        accession_limit
-      },
-      parameters,
-      output_format,
-      sep = " "
-    )
-
-    Blast <- rstudioapi::terminalExecute(trmnl_cmd,
-      show = show
-    )
-
-    print(paste("Running Blast - ",
-      trmnl_cmd,
-      sep = ""
-    ))
-
-    while (is.null(rstudioapi::terminalExitCode(Blast))) {
-      Sys.sleep(0.1)
-    }
-
-    if (rstudioapi::terminalExitCode(Blast) == 0) {
-      print("Blast successful")
-    } else {
-      stop(print(
-        paste(
-          "Blast ran into an error - Code: ",
-          rstudioapi::terminalExitCode(Blast),
-          " - Please check terminal for details"
-        )
-      ))
-    }
-    rstudioapi::terminalKill(Blast)
+        acsn_list, 
+        max_out, 
+        chunks))
   }
 
+  
   ##### Alternative annotations (Silva + RDP) -----
   if (alt_annot) {
     list_dbs <- list.files(alt_path)
@@ -357,7 +312,7 @@ txm_align <- function(seq_in,
     tab_path,
     paste("Alignment_",
       tab_out,
-      ".csv",
+      ".tsv",
       sep = ""
     )
   )
@@ -370,20 +325,19 @@ txm_align <- function(seq_in,
         tab_path,
         paste("Alignment_",
           tab_out,
-          ".csv",
+          ".tsv",
           sep = ""
         )
       ))
     ) %>%
       magrittr::set_colnames(c(
         "ID",
-        "GiID",
         "AccID",
         "TaxID",
         "Species",
         "bitscore",
-        "qcovs",
         "Evalue",
+        "qcovs",
         "Pct"
       )) %>%
       dtplyr::lazy_dt() %>%
@@ -419,7 +373,6 @@ txm_align <- function(seq_in,
         .data$ASVs,
         .data$TaxID,
         .data$AccID,
-        .data$GiID,
         tidyselect::everything()
       ) %>%
       txm_lineage(
