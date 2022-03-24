@@ -526,7 +526,7 @@ blast_run <- function(seq,
   
   FASTA_file <- seq %>%
     base::data.frame() %>%
-    batch(ceiling(nrow(.) / chunks)) %>%
+    batch(chunks) %>%
     purrr::map(~ mk_fasta(.x)) %>%
     purrr::imap(
       ~ readr::write_lines(
