@@ -202,14 +202,18 @@ txm_ecosrc <- function(hit_tbl,
       purrr::lmap(~ get_pbids(.x, 
                               sys.break)) %>%
       purrr::prepend(to_rm) %>%
-      dplyr::bind_rows() %>%
+      dplyr::bind_rows()
+    
+    if (nrow(pmids) > 0) {
+      pmids <- pmids %>%
       dplyr::group_by(.data$AccID) %>%
       dplyr::distinct(.data$PMID,
         .keep_all = T
       ) %>%
       dplyr::ungroup() %>%
       base::data.frame()
-
+    }
+    
     rm(to_rm, envir = .GlobalEnv)
 
     ##### PubMed data retrieval -----
