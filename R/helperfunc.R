@@ -69,7 +69,8 @@ check_align <- function(db_name,
                         run_blst,
                         acsn_check,
                         alt_annot,
-                        alt_path) {
+                        alt_path,
+                        org) {
   if (is.null(db_path)) {
     stop("Please provide the full path to the database")
   } else if (!dir.exists(db_path)) {
@@ -114,13 +115,13 @@ check_align <- function(db_name,
     if (owrt) {
       unlink(
         here::here(
-        tab_path,
-        paste("Alignment_",
-              tab_out,
-              ".tsv",
-              sep = ""
+          tab_path,
+          paste("Alignment_",
+            tab_out,
+            ".tsv",
+            sep = ""
+          )
         )
-      )
       )
     }
   } else {
@@ -234,60 +235,95 @@ check_align <- function(db_name,
       )
     }
   }
+
   if (alt_annot) {
     list_dbs <- list.files(alt_path)
 
-    to_find <- list(
-      "silva.*train",
-      "silva.*species",
-      "rdp.*train",
-      "rdp.*species"
-    ) %>%
-      purrr::map(.f = function(x) {
-        check <- stringr::str_subset(list_dbs, x) %>%
-          purrr::is_empty()
-        if (check) {
-          stop(paste(x, "not found in the specified directory"))
-        }
-      })
+    if (org == "bac") {
+      to_find <- list(
+        "silva.*train",
+        "silva.*species",
+        "rdp.*train",
+        "rdp.*species"
+      ) %>%
+        purrr::map(.f = function(x) {
+          check <- stringr::str_subset(list_dbs, x) %>%
+            purrr::is_empty()
+          if (check) {
+            stop(paste(x, "not found in the specified directory"))
+          }
+        })
 
-    if (file.exists(
-      here::here(
-        tab_path,
-        "Silva_annot.fst"
+      if (file.exists(
+        here::here(
+          tab_path,
+          "Silva_annot.fst"
+        )
+      )) {
+        owrt_silva <- utils::askYesNo(
+          "Silva annotations exist in the specified directory. Overwrite?"
+        )
+      } else {
+        owrt_silva <- TRUE
+      }
+
+      assign(
+        "owrt_silva",
+        owrt_silva,
+        .GlobalEnv
       )
-    )) {
-      owrt_silva <- utils::askYesNo(
-        "Silva annotations exist in the specified directory. Overwrite?"
+
+      if (file.exists(
+        here::here(
+          tab_path,
+          "RDP_annot.fst"
+        )
+      )) {
+        owrt_RDP <- utils::askYesNo(
+          "RDP annotations exist in the specified directory. Overwrite?"
+        )
+      } else {
+        owrt_RDP <- TRUE
+      }
+
+      assign(
+        "owrt_RDP",
+        owrt_RDP,
+        .GlobalEnv
       )
-    } else {
-      owrt_silva <- TRUE
     }
 
-    assign(
-      "owrt_silva",
-      owrt_silva,
-      .GlobalEnv
-    )
+    if (org == "fungi") {
+      to_find <- list(
+        "sh_general.*fasta"
+      ) %>%
+        purrr::map(.f = function(x) {
+          check <- stringr::str_subset(list_dbs, x) %>%
+            purrr::is_empty()
+          if (check) {
+            stop(paste(x, "not found in the specified directory"))
+          }
+        })
 
-    if (file.exists(
-      here::here(
-        tab_path,
-        "RDP_annot.fst"
+      if (file.exists(
+        here::here(
+          tab_path,
+          "UNITE_annot.fst"
+        )
+      )) {
+        owrt_unite <- utils::askYesNo(
+          "UNITE annotations exist in the specified directory. Overwrite?"
+        )
+      } else {
+        owrt_unite <- TRUE
+      }
+
+      assign(
+        "owrt_unite",
+        owrt_unite,
+        .GlobalEnv
       )
-    )) {
-      owrt_RDP <- utils::askYesNo(
-        "RDP annotations exist in the specified directory. Overwrite?"
-      )
-    } else {
-      owrt_RDP <- TRUE
     }
-
-    assign(
-      "owrt_RDP",
-      owrt_RDP,
-      .GlobalEnv
-    )
   }
 }
 
@@ -364,11 +400,11 @@ batch <- function(obj,
                   wth_each) {
   ct_pcs <- round(nrow(obj) / wth_each)
   if (ct_pcs < 1) ct_pcs <- 1
-  
+
   out <- obj %>%
     dplyr::mutate(batch = rep(1:ct_pcs,
-                              each = ct_pcs,
-                              length.out = nrow(.)
+      each = ct_pcs,
+      length.out = nrow(.)
     )) %>%
     dplyr::group_by(.data$batch) %>%
     tidyr::nest() %>%
@@ -378,13 +414,13 @@ batch <- function(obj,
 mk_fasta <- function(x) {
   x <- x %>%
     dplyr::mutate(ID = paste(">",
-                             ID,
-                             sep = ""
+      ID,
+      sep = ""
     )) %>%
     base::as.list() %>%
     purrr::pmap(~ paste(.x,
-                        .y,
-                        sep = "\n"
+      .y,
+      sep = "\n"
     )) %>%
     base::unlist()
 }
@@ -397,60 +433,67 @@ trmnl_cmd <- function(task,
                       pctidt,
                       acsn_path,
                       acsn_list,
-                      max_out, 
+                      max_out,
                       run_prl) {
-  
-  prl <- paste("ls", 
-               here::here(tab_path, 
-                          "*.fa"), 
-               "| parallel -a -")
-  
-  blst_cmd <- paste("blastn -task ",
-                    task,
-                    sep = ""
+  prl <- paste(
+    "ls",
+    here::here(
+      tab_path,
+      "*.fa"
+    ),
+    "| parallel -a -"
   )
-  
-  db <- paste("-db ",
-              here::here(
-                db_path,
-                db_name
-              ),
-              sep = ""
+
+  blst_cmd <- paste(
+    "blastn -task ",
+    task,
+    sep = ""
   )
-  
-  query <- paste("-query {}"
+
+  db <- paste(
+    "-db ",
+    here::here(
+      db_path,
+      db_name
+    ),
+    sep = ""
   )
-  
-  output <- paste("-out ",
-                  here::here(
-                    tab_path,
-                    "Alignment_{/.}.tsv"
-                  ),
-                  sep = ""
+
+  query <- paste("-query {}")
+
+  output <- paste(
+    "-out ",
+    here::here(
+      tab_path,
+      "Alignment_{/.}.tsv"
+    ),
+    sep = ""
   )
-  
-  parameters <- paste("-num_threads",
-                      threads,
-                      "-perc_identity",
-                      pctidt,
-                      sep = " "
+
+  parameters <- paste(
+    "-num_threads",
+    threads,
+    "-perc_identity",
+    pctidt,
+    sep = " "
   )
-  
-  acsn_limit <- paste("-seqidlist ",
-                      here::here(
-                        acsn_path,
-                        acsn_list
-                      ),
-                      ".bsl",
-                      sep = ""
+
+  acsn_limit <- paste(
+    "-seqidlist ",
+    here::here(
+      acsn_path,
+      acsn_list
+    ),
+    ".bsl",
+    sep = ""
   )
-  
+
   out_fmt <- paste(
     "-max_target_seqs",
     max_out,
     "-outfmt \"'6 qacc saccver staxids sscinames bitscore evalue qcovs pident'\""
   )
-  
+
   cmd <- paste(
     prl,
     blst_cmd,
@@ -469,7 +512,7 @@ trmnl_cmd <- function(task,
 
 trmnl_run <- function(x) {
   blst <- rstudioapi::terminalExecute(x,
-                                      show = F
+    show = F
   )
 }
 
@@ -481,7 +524,7 @@ trmnl_exit <- function(x) {
     )) {
     Sys.sleep(0.1)
   }
-  
+
   if (!rstudioapi::terminalExitCode(x) == 0) {
     stop(print(
       paste(
@@ -511,19 +554,19 @@ blast_run <- function(seq,
                       pctidt,
                       acsn_path,
                       acsn_list,
-                      max_out, 
+                      max_out,
                       chunks) {
   temp <- here::here(
     tab_path,
     "temp"
   )
-  
+
   if (!dir.exists(temp)) {
     dir.create(temp,
-               recursive = TRUE
+      recursive = TRUE
     )
   }
-  
+
   FASTA_file <- seq %>%
     base::data.frame() %>%
     batch(chunks) %>%
@@ -542,10 +585,10 @@ blast_run <- function(seq,
         )
       )
     )
-  
+
   prgrs_bar$tick(len = -1)
   prgrs_bar$tick()
-  
+
   fsts <- list.files(
     path = temp,
     pattern = "FA_splt.*fa",
@@ -553,7 +596,7 @@ blast_run <- function(seq,
   ) %>%
     as.list() %>%
     purrr::iwalk(~ check_files(.x))
-  
+
   run <- trmnl_cmd(
     task = task,
     db_path = db_path,
@@ -568,7 +611,7 @@ blast_run <- function(seq,
     trmnl_run() %>%
     trmnl_exit()
   prgrs_bar$tick()
-  
+
   concat <- rstudioapi::terminalExecute(
     paste(
       "cat ",
@@ -577,8 +620,8 @@ blast_run <- function(seq,
       here::here(
         tab_path,
         paste("Alignment_",
-              tab_out,
-              sep = ""
+          tab_out,
+          sep = ""
         )
       ),
       ".tsv",
@@ -586,11 +629,11 @@ blast_run <- function(seq,
     ),
     show = F
   )
-  
+
   trmnl_exit(concat)
-  
+
   unlink(temp,
-         recursive = T
+    recursive = T
   )
 }
 
@@ -771,7 +814,7 @@ rm_prv <- function(x) {
   }
 }
 
-get_esumm <- function(accID, 
+get_esumm <- function(accID,
                       sys.break = 1) {
   chunk_ID <- try({
     ids_post <- rentrez::entrez_post(
@@ -889,7 +932,7 @@ get_pbdt <- function(pmid,
       db = "pubmed",
       id = purrr::flatten(pmid)$PMID
     )
-    
+
     pmids_fetch <- rentrez::entrez_fetch(
       db = "pubmed",
       web_history = pmids_post,
@@ -897,7 +940,7 @@ get_pbdt <- function(pmid,
       retmode = "xml",
       parsed = F
     )
-    
+
     pmids_cn1 <- xml2::read_xml(pmids_fetch) %>%
       xml2::xml_children() %>%
       xml2::as_list() %>%
@@ -908,7 +951,7 @@ get_pbdt <- function(pmid,
           names(.x) %in% "MedlineCitation"
         )
       )
-    
+
     pmids_cn2 <- pmids_cn1 %>%
       purrr::modify_depth(
         .depth = 2,
@@ -921,7 +964,7 @@ get_pbdt <- function(pmid,
           )
         )
       )
-    
+
     pmids_cn3 <- pmids_cn2 %>%
       purrr::modify_depth(
         .depth = 2,
@@ -938,7 +981,7 @@ get_pbdt <- function(pmid,
           )
         )
       )
-    
+
     pmids_cn4 <- pmids_cn3 %>%
       purrr::modify_depth(
         .depth = 2,
@@ -955,7 +998,7 @@ get_pbdt <- function(pmid,
           )
         )
       )
-    
+
     pmids_cn5 <- pmids_cn4 %>%
       purrr::modify_depth(
         .depth = 2,
@@ -969,7 +1012,7 @@ get_pbdt <- function(pmid,
           }
         )
       )
-    
+
     pmids_cn6 <- pmids_cn5 %>%
       purrr::modify_depth(
         .depth = 2,
@@ -1013,7 +1056,7 @@ get_pbdt <- function(pmid,
       )) %>%
       base::list()
   })
-  
+
   if (!class(chunk_pub) == "try-error") {
     prgrs_bar$tick()
     Sys.sleep(sys.break)
@@ -1253,29 +1296,32 @@ concat <- function(x) {
 clpse_wbks <- function(x) {
   if (stringr::str_detect(x, "\\+")) {
     site_split <- unlist(
-      stringr::str_split(x,
-                         pattern = "\\+"
+      stringr::str_split(
+        x,
+        pattern = "\\+"
       )
     )
     site_cmp <- Word_banks %>%
       purrr::keep(names(Word_banks) %in% site_split) %>%
       purrr::flatten() %>%
-      purrr::map_chr(.data,
-                     .f = ~ paste("\\b",
-                                  .x,
-                                  "\\b",
-                                  sep = ""
-                     )
+      purrr::map_chr(
+        .data,
+        .f = ~ paste("\\b",
+          .x,
+          "\\b",
+          sep = ""
+        )
       ) %>%
       paste(collapse = "|") %>%
       as.list()
   } else {
     as.list(purrr::pluck(Word_banks, x)) %>%
-      purrr::map_chr(.data,
-                     .f = ~ paste("\\b",
-                                  .x, "\\b",
-                                  sep = ""
-                     )
+      purrr::map_chr(
+        .data,
+        .f = ~ paste("\\b",
+          .x, "\\b",
+          sep = ""
+        )
       ) %>%
       paste(collapse = "|") %>%
       as.list()
@@ -1286,7 +1332,8 @@ clpse_lists <- function(x, y) {
   z <- x %>%
     dplyr::bind_rows(
       y <- y %>%
-        dplyr::filter(!ID %in% x$ID))
+        dplyr::filter(!ID %in% x$ID)
+    )
 }
 
 hm_wbk <- purrr::map(
@@ -1325,7 +1372,7 @@ meta_extr <- function(x) {
     dplyr::mutate(
       host = dplyr::case_when(
         (is.na(host) & stringr::str_detect(
-          .data$Isolation_source, 
+          .data$Isolation_source,
           pattern = unlist(hm_wbk)
         )) ~ "human new",
         TRUE ~ host

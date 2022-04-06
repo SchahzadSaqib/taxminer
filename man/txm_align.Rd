@@ -14,6 +14,7 @@ txm_align(
   acsn_path = ".",
   alt_path = NULL,
   alt_annot = T,
+  org = "bac",
   asbd_tbl_lge = NA,
   asgn_tbl_lge = paste("Dataset_lge", Sys.Date(), ".fst", sep = ""),
   task = "megablast",
@@ -60,6 +61,7 @@ Must identify a folder that contains at least 4 files:
 \item silva species assignment (regex: "silva.*species")
 \item rdp train set (regex: "rdp.*train")
 \item rdp species assignment (regex: "rdp.*species")
+\item UNITE general release fasta (regex: "sh_general.*fasta")
 }
 Pre-formatted dada2 databases are recommended:
 \href{https://benjjneb.github.io/dada2/training.html}{dada2 fasta files}}
@@ -67,6 +69,14 @@ Pre-formatted dada2 databases are recommended:
 \item{alt_annot}{(Logical) Default TRUE. Alternative annotations with SILVA
 and RDP databases using \link[dada2]{assignTaxonomy} for up to genus level
 annotations followed by \link[dada2]{addSpecies} for assigning species.}
+
+\item{org}{(String) Default "bac". The organism being investigated.
+\itemize{
+\item "bac" - Bacteria. Silva and RDP databases are used for alternative
+annotations to BLAST.
+\item "fungi" - Fungi. UNITE database is used for alternative annotations
+to BLAST.
+}}
 
 \item{asbd_tbl_lge}{(String) Default NA. Full path and name of a
 pre-compiled table to be used for lineage assignment}

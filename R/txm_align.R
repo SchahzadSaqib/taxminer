@@ -5,9 +5,11 @@ utils::globalVariables(c(
   "owrt",
   "owrt_silva",
   "owrt_RDP",
+  "owrt_unite",
   "ASVs",
   "bitscore",
   "Pct",
+  "family",
   "qcovs",
   "Evalue"
 ))
@@ -36,7 +38,7 @@ utils::globalVariables(c(
 #' @param tab_path (String) Default "." (current working directory). Specify
 #' full output path for results.
 #' @param threads (>0) Default 1. Number of threads assigned to BLAST
-#' alignment. Set these in accordance to your hardware. 
+#' alignment. Set these in accordance to your hardware.
 #' @param acsn_list (String) Default NULL. Full path to a list of accession
 #' IDs that will be used to restrict the BLAST database (-seqidlist), which
 #' is highly recommended for large databases such as "nt/nr". This can be
@@ -59,25 +61,33 @@ utils::globalVariables(c(
 #'   \item silva species assignment (regex: "silva.*species")
 #'   \item rdp train set (regex: "rdp.*train")
 #'   \item rdp species assignment (regex: "rdp.*species")
+#'   \item UNITE general release fasta (regex: "sh_general.*fasta")
 #' }
 #' Pre-formatted dada2 databases are recommended:
 #' \href{https://benjjneb.github.io/dada2/training.html}{dada2 fasta files}
+#' @param org (String) Default "bac". The organism being investigated.
+#' \itemize{
+#'   \item "bac" - Bacteria. Silva and RDP databases are used for alternative
+#'   annotations to BLAST.
+#'   \item "fungi" - Fungi. UNITE database is used for alternative annotations
+#'   to BLAST.
+#' }
 #' @param asbd_tbl_lge (String) Default NA. Full path and name of a
 #' pre-compiled table to be used for lineage assignment
 #' @param asgn_tbl_lge (String) Default Dataset_lge + system date. Full path
 #' and name of a new data set to be created.
 #' @param show (Logical) Default FALSE. Switch from console to terminal?
 #' @param run_blst (Logical) Default TRUE. Run BLAST alignment?
-#' @param batches (>0) Default 1. Should the sequences be aligned in batches? 
+#' @param batches (>0) Default 1. Should the sequences be aligned in batches?
 #' \itemize{
 #'   \item 1 = no batches
 #'   \item >1 = total sequences/batches
 #' }
 #' @param chunks (>0) Default 1. Should each batch of sequences be split into
-#' further chunks to be aligned in parallel? 
+#' further chunks to be aligned in parallel?
 #' \itemize{
 #'   \item 1 = no further chunks
-#'   \item >1 = each batch is further divided to the closest number of chunks 
+#'   \item >1 = each batch is further divided to the closest number of chunks
 #'   possible and ran in parallel using GNU parallel
 #' }
 #' @param qcvg (0-100) Default 98 (%). Threshold for query coverage.
@@ -98,6 +108,7 @@ txm_align <- function(seq_in,
                       acsn_path = ".",
                       alt_path = NULL,
                       alt_annot = T,
+                      org = "bac",
                       asbd_tbl_lge = NA,
                       asgn_tbl_lge = paste("Dataset_lge",
                         Sys.Date(),
@@ -127,12 +138,12 @@ txm_align <- function(seq_in,
     run_blst,
     acsn_check,
     alt_annot,
-    alt_path
+    alt_path,
+    org
   )
 
   ##### BLAST prep and run -----
   if (run_blst & owrt) {
-
     ASVs <- dada2::getSequences(seq_in) %>%
       base::as.data.frame() %>%
       purrr::set_names("ASVs") %>%
@@ -141,171 +152,238 @@ txm_align <- function(seq_in,
         .data$ID,
         .data$ASVs
       )
-    
-    ASV_splt <- batch(ASVs, 
-                      batches)
-    
+
+    ASV_splt <- batch(
+      ASVs,
+      batches
+    )
+
     print(
       paste(
-        nrow(ASVs), 
-        " sequences will be aligned - batches: ", 
+        nrow(ASVs),
+        " sequences will be aligned - batches: ",
         length(ASV_splt),
         ", chunks: ",
-        chunks, 
-        sep = "")
+        chunks,
+        sep = ""
+      )
     )
-    
-    prgrs_bar <- new_bar(length(ASV_splt), 
-                         "aligning")
-    assign("prgrs_bar", 
-           prgrs_bar, 
-           envir = .GlobalEnv)
-    
+
+    prgrs_bar <- new_bar(
+      length(ASV_splt),
+      "aligning"
+    )
+    assign("prgrs_bar",
+      prgrs_bar,
+      envir = .GlobalEnv
+    )
+
     blst_run <- ASV_splt %>%
       purrr::iwalk(~ blast_run(
-        .x, 
-        task, 
-        db_path, 
-        db_name, 
-        tab_path, 
-        tab_out, 
-        threads, 
-        pctidt, 
+        .x,
+        task,
+        db_path,
+        db_name,
+        tab_path,
+        tab_out,
+        threads,
+        pctidt,
         acsn_path,
-        acsn_list, 
-        max_out, 
-        chunks))
+        acsn_list,
+        max_out,
+        chunks
+      ))
   }
 
-  
-  ##### Alternative annotations (Silva + RDP) -----
+
+  ##### Alternative annotations (Silva + RDP + UNITE) -----
   if (alt_annot) {
     list_dbs <- list.files(alt_path)
     set.seed(10)
 
-    if (owrt_silva) {
-      print("assigning taxonomies from silva")
-      annot_silva_sp <- dada2::assignTaxonomy(
-        seq_in,
-        here::here(
-          alt_path,
-          stringr::str_subset(
-            list_dbs,
-            "silva.*train"
-          )
-        ),
-        minBoot = 80,
-        multithread = T,
-        tryRC = T
-      ) %>%
-        dada2::addSpecies(
+    if (org == "bac") {
+      if (owrt_silva) {
+        print("assigning taxonomies from silva")
+        annot_silva_sp <- dada2::assignTaxonomy(
+          seq_in,
           here::here(
             alt_path,
             stringr::str_subset(
               list_dbs,
-              "silva.*species"
+              "silva.*train"
             )
           ),
-          allowMultiple = T,
+          minBoot = 80,
+          multithread = T,
           tryRC = T
         ) %>%
-        data.frame() %>%
-        tibble::rownames_to_column(
-          var = "ASVs"
-        ) %>%
-        dplyr::group_by(ASVs) %>%
-        tidyr::nest() %>%
-        dplyr::mutate(data = purrr::map(
-          data,
-          rplc
-        )) %>%
-        tidyr::unnest(cols = data) %>%
-        dplyr::mutate(
-          # modify upper lineage for select taxa to align with 
-          # current NCBI taxonomic levels to facilitate annotation scores. 
-          # Potentially update to TaxIDs 
-          Phylum = dplyr::case_when(
-            Phylum == "Actinobacteriota" ~ "Actinobacteria",
-            Phylum == "Fusobacteriota" ~ "Fusobacteria",
-            Phylum == "Bacteroidota" ~ "Bacteroidetes", 
-            TRUE ~ Phylum
-          ), 
-          Class = dplyr::case_when(
-            Class == "Actinobacteria" ~ "Actinomycetia",
-            TRUE ~ Class
+          dada2::addSpecies(
+            here::here(
+              alt_path,
+              stringr::str_subset(
+                list_dbs,
+                "silva.*species"
+              )
+            ),
+            allowMultiple = T,
+            tryRC = T
+          ) %>%
+          data.frame() %>%
+          tibble::rownames_to_column(
+            var = "ASVs"
+          ) %>%
+          dplyr::group_by(ASVs) %>%
+          tidyr::nest() %>%
+          dplyr::mutate(data = purrr::map(
+            data,
+            rplc
+          )) %>%
+          tidyr::unnest(cols = data) %>%
+          dplyr::mutate(
+            # modify upper lineage for select taxa to align with
+            # current NCBI taxonomic levels to facilitate annotation scores.
+            # Potentially update to TaxIDs
+            Phylum = dplyr::case_when(
+              Phylum == "Actinobacteriota" ~ "Actinobacteria",
+              Phylum == "Fusobacteriota" ~ "Fusobacteria",
+              Phylum == "Bacteroidota" ~ "Bacteroidetes",
+              TRUE ~ Phylum
+            ),
+            Class = dplyr::case_when(
+              Class == "Actinobacteria" ~ "Actinomycetia",
+              TRUE ~ Class
+            )
+          )
+
+        fst::write_fst(annot_silva_sp,
+          path = here::here(
+            tab_path,
+            "Silva_annot.fst"
           )
         )
+      }
 
-      fst::write_fst(annot_silva_sp,
-        path = here::here(
-          tab_path,
-          "Silva_annot.fst"
-        )
-      )
-    }
-
-    if (owrt_RDP) {
-      print("assigning taxonomies from rdp")
-      annot_rdp_sp <- dada2::assignTaxonomy(
-        seq_in,
-        here::here(
-          alt_path,
-          stringr::str_subset(
-            list_dbs,
-            "rdp.*train"
-          )
-        ),
-        minBoot = 80,
-        multithread = T,
-        tryRC = T
-      ) %>%
-        dada2::addSpecies(
+      if (owrt_RDP) {
+        print("assigning taxonomies from rdp")
+        annot_rdp_sp <- dada2::assignTaxonomy(
+          seq_in,
           here::here(
             alt_path,
             stringr::str_subset(
               list_dbs,
-              "rdp.*species"
+              "rdp.*train"
             )
           ),
-          allowMultiple = T,
+          minBoot = 80,
+          multithread = T,
           tryRC = T
         ) %>%
-        data.frame() %>%
-        tibble::rownames_to_column(
-          var = "ASVs") %>%
-        dplyr::group_by(ASVs) %>%
-        tidyr::nest() %>%
-        dplyr::mutate(data = purrr::map(
-          data,
-          rplc
-        )) %>%
-        tidyr::unnest(cols = data) %>%
-        # modify upper lineage for select taxa to align with 
-        # current NCBI taxonomic levels to facilitate annotation scores. 
-        # Potentially update to TaxIDs 
-        dplyr::mutate( 
-          Class = dplyr::case_when(
-            Class == "Actinobacteria" ~ "Actinomycetia", 
-            TRUE ~ Class
+          dada2::addSpecies(
+            here::here(
+              alt_path,
+              stringr::str_subset(
+                list_dbs,
+                "rdp.*species"
+              )
+            ),
+            allowMultiple = T,
+            tryRC = T
+          ) %>%
+          data.frame() %>%
+          tibble::rownames_to_column(
+            var = "ASVs"
+          ) %>%
+          dplyr::group_by(ASVs) %>%
+          tidyr::nest() %>%
+          dplyr::mutate(data = purrr::map(
+            data,
+            rplc
+          )) %>%
+          tidyr::unnest(cols = data) %>%
+          # modify upper lineage for select taxa to align with
+          # current NCBI taxonomic levels to facilitate annotation scores.
+          # Potentially update to TaxIDs
+          dplyr::mutate(
+            Class = dplyr::case_when(
+              Class == "Actinobacteria" ~ "Actinomycetia",
+              TRUE ~ Class
+            )
+          )
+
+        fst::write_fst(annot_rdp_sp,
+          path = here::here(
+            tab_path,
+            "RDP_annot.fst"
           )
         )
-
-      fst::write_fst(annot_rdp_sp,
-        path = here::here(
-          tab_path,
-          "RDP_annot.fst"
-        )
-      )
+      }
     }
+
+    if (org == "fungi") {
+      if (owrt_unite) {
+        print("assigning taxonomies from UNITE")
+        annot_unite <- dada2::assignTaxonomy(
+          seq_in,
+          here::here(
+            alt_path,
+            stringr::str_subset(
+              list_dbs,
+              "sh_general.*fasta"
+            )
+          ),
+          minBoot = 80,
+          multithread = T,
+          tryRC = T
+        ) %>%
+          data.frame() %>%
+          tibble::rownames_to_column(
+            var = "ASVs"
+          ) %>%
+          dplyr::rename_with(tolower) %>%
+          dplyr::mutate(
+            dplyr::across(
+              tidyselect::everything(),
+              .fns = ~ stringr::str_remove(.x, ".*__")
+            ),
+            dplyr::across(
+              tidyselect::everything(),
+              .fns = ~ ifelse(
+                stringr::str_detect(.x, "_fam_.*"),
+                paste(
+                  "unknown",
+                  stringr::str_remove(.x, "_fam_.*")
+                ),
+                .x
+              )
+            ),
+            family = ifelse(
+              stringr::str_detect(
+                family,
+                "unknown Saccharomycetales"
+              ),
+              "Debaryomycetaceae",
+              family
+            )
+          )
+
+        fst::write_fst(annot_unite,
+          path = here::here(
+            tab_path,
+            "UNITE_annot.fst"
+          )
+        )
+      }
+    }
+
+    rm(
+      list = stringr::str_subset(
+        ls(pos = .GlobalEnv),
+        "owrt"
+      ),
+      envir = .GlobalEnv
+    )
   }
 
-  rm(
-    list = stringr::str_subset(
-      ls(pos = .GlobalEnv),
-      "owrt"
-    ),
-    envir = .GlobalEnv
-  )
 
   ##### Process alignment results -----
   align_path <- here::here(
