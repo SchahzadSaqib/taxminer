@@ -336,10 +336,11 @@ txm_align <- function(seq_in,
           tryRC = T
         ) %>%
           data.frame() %>%
+          dplyr::rename_with(tolower) %>%
+          dplyr::mutate(kingdom = "Eukaryota") %>%
           tibble::rownames_to_column(
             var = "ASVs"
           ) %>%
-          dplyr::rename_with(tolower) %>%
           dplyr::mutate(
             dplyr::across(
               tidyselect::everything(),

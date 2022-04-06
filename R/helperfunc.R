@@ -331,7 +331,8 @@ check_ecosrc <- function(hit_tbl,
                          filt_host,
                          filt_site,
                          filt_negt,
-                         alt_tbl_path) {
+                         alt_tbl_path,
+                         org) {
   if (nrow(hit_tbl) == 0) {
     stop("Empty Data.frame - Aborting Relevance filtration")
   }
@@ -362,17 +363,32 @@ check_ecosrc <- function(hit_tbl,
 
   list_tbls <- list.files(alt_tbl_path)
 
-  to_find <- list(
-    "Silva_annot.fst",
-    "RDP_annot.fst"
-  ) %>%
-    purrr::map(.f = function(x) {
-      check <- stringr::str_subset(list_tbls, x) %>%
-        purrr::is_empty()
-      if (check) {
-        stop(paste(x, "not found in the specified directory"))
-      }
-    })
+  if (org == "bac") {
+    to_find <- list(
+      "Silva_annot.fst",
+      "RDP_annot.fst"
+    ) %>%
+      purrr::map(.f = function(x) {
+        check <- stringr::str_subset(list_tbls, x) %>%
+          purrr::is_empty()
+        if (check) {
+          stop(paste(x, "not found in the specified directory"))
+        }
+      })
+  }
+
+  if (org == "fungi") {
+    to_find <- list(
+      "UNITE_annot.fst"
+    ) %>%
+      purrr::map(.f = function(x) {
+        check <- stringr::str_subset(list_tbls, x) %>%
+          purrr::is_empty()
+        if (check) {
+          stop(paste(x, "not found in the specified directory"))
+        }
+      })
+  }
 }
 
 check_lineage <- function(taxids,
@@ -676,7 +692,7 @@ rplc <- function(lin) {
 
 
 ##### txm_ecosrc miscellaneous helper functions -----
-annot_score <- function(x, y, z) {
+annot_score <- function(x, y, z, org) {
   prgrs_bar$tick()
   x_lin <- purrr::flatten(x) %>%
     purrr::keep(names(.) %in% c(
@@ -689,69 +705,114 @@ annot_score <- function(x, y, z) {
       "species"
     ))
 
-  silva <- unlist(x_lin)[1:6] %>%
-    stringr::str_count(unlist(y)[1:6]) %>%
-    tidyr::replace_na(0) %>%
-    base::sum()
+  if (org == "bac") {
+    silva <- unlist(x_lin)[1:6] %>%
+      stringr::str_count(unlist(y)[1:6]) %>%
+      tidyr::replace_na(0) %>%
+      base::sum()
 
-  silva_sp <- unlist(x_lin)[7] %>%
-    stringr::str_count(
-      paste("\\b",
-        base::unlist(
-          stringr::str_split(
-            y[[1]][7],
-            pattern = "/"
-          )
-        ),
-        "\\b",
-        sep = ""
-      )
-    ) %>%
-    base::sum() %>%
-    tidyr::replace_na(0) * 2
+    silva_sp <- unlist(x_lin)[7] %>%
+      stringr::str_count(
+        paste("\\b",
+          base::unlist(
+            stringr::str_split(
+              y[[1]][7],
+              pattern = "/"
+            )
+          ),
+          "\\b",
+          sep = ""
+        )
+      ) %>%
+      base::sum() %>%
+      tidyr::replace_na(0) * 2
 
 
-  RDP <- unlist(x_lin)[1:6] %>%
-    stringr::str_count(unlist(z)[1:6]) %>%
-    tidyr::replace_na(0) %>%
-    sum()
+    RDP <- unlist(x_lin)[1:6] %>%
+      stringr::str_count(unlist(z)[1:6]) %>%
+      tidyr::replace_na(0) %>%
+      sum()
 
-  RDP_sp <- unlist(x_lin)[7] %>%
-    stringr::str_count(
-      paste("\\b",
-        base::unlist(
-          stringr::str_split(
-            y[[1]][7],
-            pattern = "/"
-          )
-        ),
-        "\\b",
-        sep = ""
-      )
-    ) %>%
-    base::sum() %>%
-    tidyr::replace_na(0) * 2
+    RDP_sp <- unlist(x_lin)[7] %>%
+      stringr::str_count(
+        paste("\\b",
+          base::unlist(
+            stringr::str_split(
+              y[[1]][7],
+              pattern = "/"
+            )
+          ),
+          "\\b",
+          sep = ""
+        )
+      ) %>%
+      base::sum() %>%
+      tidyr::replace_na(0) * 2
 
-  meta_scr <- purrr::flatten(x) %>%
-    purrr::keep(
-      stringr::str_detect(
-        names(.),
-        "PMID|host|Isolation_source"
-      )
-    ) %>%
-    purrr::map(.f = ~ ifelse(!is.na(.), 1, 0)) %>%
-    unlist() %>%
-    sum() * 3
+    meta_scr <- purrr::flatten(x) %>%
+      purrr::keep(
+        stringr::str_detect(
+          names(.),
+          "PMID|host|Isolation_source"
+        )
+      ) %>%
+      purrr::map(.f = ~ ifelse(!is.na(.), 1, 0)) %>%
+      unlist() %>%
+      sum() * 3
 
-  score <- silva + silva_sp + RDP + RDP_sp + meta_scr
-  df <- data.frame(
-    silva,
-    silva_sp,
-    RDP,
-    RDP_sp,
-    meta_scr,
-    score
-  )
+    score <- silva + silva_sp + RDP + RDP_sp + meta_scr
+    df <- data.frame(
+      silva,
+      silva_sp,
+      RDP,
+      RDP_sp,
+      meta_scr,
+      score
+    )
+  }
+
+  if (org == "fungi") {
+    unite <- unlist(x_lin)[1:6] %>%
+      stringr::str_count(unlist(y)[1:6]) %>%
+      tidyr::replace_na(0) %>%
+      base::sum()
+
+    unite_sp <- unlist(x_lin)[7] %>%
+      stringr::str_count(
+        paste("\\b",
+          base::unlist(
+            stringr::str_split(
+              y[[1]][7],
+              pattern = "/"
+            )
+          ),
+          "\\b",
+          sep = ""
+        )
+      ) %>%
+      base::sum() %>%
+      tidyr::replace_na(0) * 2
+
+    meta_scr <- purrr::flatten(x) %>%
+      purrr::keep(
+        stringr::str_detect(
+          names(.),
+          "PMID|host|Isolation_source"
+        )
+      ) %>%
+      purrr::map(.f = ~ ifelse(!is.na(.), 1, 0)) %>%
+      unlist() %>%
+      sum() * 3
+
+    score <- unite + unite_sp + meta_scr
+
+    df <- data.frame(
+      unite,
+      unite_sp,
+      meta_scr,
+      score
+    )
+  }
 }
 
 new_bar <- function(len,

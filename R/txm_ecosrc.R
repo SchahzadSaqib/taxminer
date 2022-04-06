@@ -22,33 +22,40 @@ utils::globalVariables(c(
 
 #' Text mining and filtration
 #'
-#' Extract information from NCBI nucleotide and PubMed databases, attaching 
-#' ecosystem specificity to each accession ID. Different combinations of word 
-#' banks are used to scan through the data and apply the filtration 
-#' criteria. The accession IDs are split into batches of 200, 
+#' Extract information from NCBI nucleotide and PubMed databases, attaching
+#' ecosystem specificity to each accession ID. Different combinations of word
+#' banks are used to scan through the data and apply the filtration
+#' criteria. The accession IDs are split into batches of 200,
 #' and \link[rentrez]{rentrez} is used to communicate with NCBI.
-#' For each annotation hit a "score" is calculated based on the consensus 
-#' between the superkingdom-species level lineage obtained from 
-#' BLAST + Silva + RDP and the completeness of the available 
+#' For each annotation hit a "score" is calculated based on the consensus
+#' between the superkingdom-species level lineage obtained from
+#' BLAST + Silva + RDP and the completeness of the available
 #' ecosystem/publication information.
-#' Uses a NCBI api key is highly recommended. 
+#' Uses a NCBI api key is highly recommended.
 #' \href{  https://cran.r-project.org/web/packages/rentrez/vignettes/rentrez_tutorial.html#rate-limiting-and-api-keys}{rentrez vignette}
 #'
-#' @param hit_tbl (data.frame) **Required** Default NULL. Output table obtained 
-#' from \link[taxminer]{txm_align}. 
-#' @param alt_tbl_path (String) **Required** Default NULL. Full path to silva 
+#' @param hit_tbl (data.frame) **Required** Default NULL. Output table obtained
+#' from \link[taxminer]{txm_align}.
+#' @param alt_tbl_path (String) **Required** Default NULL. Full path to silva
 #' and RDP annotation outputs.
+#' @param org (String) Default "bac". The organism being investigated.
+#' \itemize{
+#'   \item "bac" - Bacteria. Silva and RDP databases are used for alternative
+#'   annotations to BLAST.
+#'   \item "fungi" - Fungi. UNITE database is used for alternative annotations
+#'   to BLAST.
+#' }
 #' @param filt_host (String) Default NA. Filter annotations by host
-#' @param filt_site (String) Default NA. Filter annotations by body site or 
+#' @param filt_site (String) Default NA. Filter annotations by body site or
 #' environment.
-#' @param filt_negt (String) Default NA. Disregard annotations that contain 
+#' @param filt_negt (String) Default NA. Disregard annotations that contain
 #' these terms.
-#' @param do_filt (Logical) Default TRUE. Perform filtration using the word 
-#' banks. If FALSE the output will contain all accession IDs and the extracted 
+#' @param do_filt (Logical) Default TRUE. Perform filtration using the word
+#' banks. If FALSE the output will contain all accession IDs and the extracted
 #' information associated to them.
-#' @param asbd_tbl (String) Default NA. Specify the name of the pre-compiled 
+#' @param asbd_tbl (String) Default NA. Specify the name of the pre-compiled
 #' database present within the directory.
-#' @param asgn_tbl (String) Default Dataset + system date. Name of a new 
+#' @param asgn_tbl (String) Default Dataset + system date. Name of a new
 #' compiled database to be assigned
 #' @param sys.break (>0) Default 1. Amount of time, in seconds, that the
 #'                  system is paused between iterations. This is handy with larger
@@ -60,6 +67,7 @@ txm_ecosrc <- function(hit_tbl,
                        filt_site = NA,
                        filt_negt = NA,
                        alt_tbl_path = NULL,
+                       org = "bac",
                        do_filt = T,
                        asbd_tbl = NA,
                        asgn_tbl = paste("Dataset_",
@@ -73,7 +81,8 @@ txm_ecosrc <- function(hit_tbl,
     filt_host,
     filt_site,
     filt_negt,
-    alt_tbl_path
+    alt_tbl_path,
+    org
   )
 
   ##### Input preparation -----
@@ -151,8 +160,10 @@ txm_ecosrc <- function(hit_tbl,
       print("Retrieving Accession ID data")
 
       df_summ <- ids_src %>%
-        purrr::map_dfr(~ get_esumm(.x, 
-                                   sys.break)) %>%
+        purrr::map_dfr(~ get_esumm(
+          .x,
+          sys.break
+        )) %>%
         dplyr::mutate(meta = concat(.)) %>%
         dplyr::select(-c(
           .data$SubType,
@@ -199,21 +210,23 @@ txm_ecosrc <- function(hit_tbl,
     print("Retrieving PMIDs")
 
     pmids <- pmids %>%
-      purrr::lmap(~ get_pbids(.x, 
-                              sys.break)) %>%
+      purrr::lmap(~ get_pbids(
+        .x,
+        sys.break
+      )) %>%
       purrr::prepend(to_rm) %>%
       dplyr::bind_rows()
-    
+
     if (nrow(pmids) > 0) {
       pmids <- pmids %>%
-      dplyr::group_by(.data$AccID) %>%
-      dplyr::distinct(.data$PMID,
-        .keep_all = T
-      ) %>%
-      dplyr::ungroup() %>%
-      base::data.frame()
+        dplyr::group_by(.data$AccID) %>%
+        dplyr::distinct(.data$PMID,
+          .keep_all = T
+        ) %>%
+        dplyr::ungroup() %>%
+        base::data.frame()
     }
-    
+
     rm(to_rm, envir = .GlobalEnv)
 
     ##### PubMed data retrieval -----
@@ -245,8 +258,10 @@ txm_ecosrc <- function(hit_tbl,
       print("Retrieving PubMed data")
 
       pbdt <- pmids_src %>%
-        purrr::lmap(~ get_pbdt(.x, 
-                               sys.break)) %>%
+        purrr::lmap(~ get_pbdt(
+          .x,
+          sys.break
+        )) %>%
         purrr::map_dfr(.f = dplyr::bind_rows) %>%
         dplyr::right_join(pmids,
           by = "PMID"
@@ -457,76 +472,137 @@ txm_ecosrc <- function(hit_tbl,
 
 
   ##### add scores for annotations -----
-  silva <- fst::read_fst(
-    here::here(
-      alt_tbl_path,
-      "Silva_annot.fst"
-    )
-  ) %>%
-    dplyr::group_by(ASVs) %>%
-    tidyr::nest(silva = !ASVs)
-
-  rdp <- fst::read_fst(
-    here::here(
-      alt_tbl_path,
-      "RDP_annot.fst"
-    )
-  ) %>%
-    dplyr::group_by(ASVs) %>%
-    tidyr::nest(RDP = !ASVs)
-
-  prgrs_bar <- new_bar(
-    nrow(df_out),
-    "adding score"
-  )
-  assign(
-    "prgrs_bar",
-    prgrs_bar,
-    .GlobalEnv
-  )
-
-  blst <- df_out %>%
-    dplyr::group_by(
-      .data$ID,
-      .data$ASVs,
-      .data$AccID
-    ) %>%
-    dplyr::distinct(.data$AccID,
-      .keep_all = TRUE
-    ) %>%
-    tidyr::nest() %>%
-    dplyr::left_join(silva,
-      by = "ASVs"
-    ) %>%
-    dplyr::left_join(rdp,
-      by = "ASVs"
-    ) %>%
-    dplyr::mutate(
-      score = purrr::pmap(
-        .l = list(
-          data,
-          silva,
-          RDP
-        ),
-        .f = ~ annot_score(
-          data,
-          silva,
-          RDP
-        )
+  if (org == "bac") {
+    silva <- fst::read_fst(
+      here::here(
+        alt_tbl_path,
+        "Silva_annot.fst"
       )
     ) %>%
-    dplyr::select(-c(silva, RDP)) %>%
-    tidyr::unnest(cols = -c(
-      ID,
-      ASVs,
-      AccID
-    )) %>%
-    dplyr::arrange(
-      ID,
-      dplyr::desc(score)
+      dplyr::group_by(ASVs) %>%
+      tidyr::nest(silva = !ASVs)
+
+    rdp <- fst::read_fst(
+      here::here(
+        alt_tbl_path,
+        "RDP_annot.fst"
+      )
+    ) %>%
+      dplyr::group_by(ASVs) %>%
+      tidyr::nest(RDP = !ASVs)
+
+    prgrs_bar <- new_bar(
+      nrow(df_out),
+      "adding score"
     )
-  
+    assign(
+      "prgrs_bar",
+      prgrs_bar,
+      .GlobalEnv
+    )
+
+    blst <- df_out %>%
+      dplyr::group_by(
+        .data$ID,
+        .data$ASVs,
+        .data$AccID
+      ) %>%
+      dplyr::distinct(.data$AccID,
+        .keep_all = TRUE
+      ) %>%
+      tidyr::nest() %>%
+      dplyr::left_join(silva,
+        by = "ASVs"
+      ) %>%
+      dplyr::left_join(rdp,
+        by = "ASVs"
+      ) %>%
+      dplyr::mutate(
+        score = purrr::pmap(
+          .l = list(
+            data,
+            silva,
+            RDP
+          ),
+          .f = ~ annot_score(
+            data,
+            silva,
+            RDP
+          )
+        )
+      ) %>%
+      dplyr::select(-c(silva, RDP)) %>%
+      tidyr::unnest(cols = -c(
+        ID,
+        ASVs,
+        AccID
+      )) %>%
+      dplyr::arrange(
+        ID,
+        dplyr::desc(score)
+      )
+  }
+
+  if (org == "fungi") {
+    unite <- fst::read_fst(
+      here::here(
+        alt_tbl_path,
+        "UNITE_annot.fst"
+      )
+    ) %>%
+      dplyr::group_by(ASVs) %>%
+      tidyr::nest(unite = !ASVs)
+
+    prgrs_bar <- new_bar(
+      nrow(df_out),
+      "adding score"
+    )
+    assign(
+      "prgrs_bar",
+      prgrs_bar,
+      .GlobalEnv
+    )
+
+    blst <- df_out %>%
+      dplyr::group_by(
+        .data$ID,
+        .data$ASVs,
+        .data$AccID
+      ) %>%
+      dplyr::distinct(.data$AccID,
+        .keep_all = TRUE
+      ) %>%
+      tidyr::nest() %>%
+      dplyr::left_join(unite,
+        by = "ASVs"
+      ) %>%
+      dplyr::mutate(
+        score = purrr::pmap(
+          .l = list(
+            data,
+            unite,
+            org = org
+          ),
+          .f = ~ annot_score(
+            data,
+            unite,
+            org = org
+          )
+        )
+      ) %>%
+      dplyr::select(-unite) %>%
+      tidyr::unnest(cols = -c(
+        ID,
+        ASVs,
+        AccID
+      )) %>%
+      dplyr::arrange(
+        ID,
+        dplyr::desc(score)
+      )
+  }
+
   rm(prgrs_bar, envir = .GlobalEnv)
-  
+
   blst
 }

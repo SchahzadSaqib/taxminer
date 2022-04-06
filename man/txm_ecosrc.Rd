@@ -10,6 +10,7 @@ txm_ecosrc(
   filt_site = NA,
   filt_negt = NA,
   alt_tbl_path = NULL,
+  org = "bac",
   do_filt = T,
   asbd_tbl = NA,
   asgn_tbl = paste("Dataset_", Sys.Date(), ".fst", sep = ""),
@@ -30,6 +31,14 @@ these terms.}
 
 \item{alt_tbl_path}{(String) \strong{Required} Default NULL. Full path to silva
 and RDP annotation outputs.}
+
+\item{org}{(String) Default "bac". The organism being investigated.
+\itemize{
+\item "bac" - Bacteria. Silva and RDP databases are used for alternative
+annotations to BLAST.
+\item "fungi" - Fungi. UNITE database is used for alternative annotations
+to BLAST.
+}}
 
 \item{do_filt}{(Logical) Default TRUE. Perform filtration using the word
 banks. If FALSE the output will contain all accession IDs and the extracted
