@@ -143,16 +143,16 @@ txm_align <- function(seq_in,
   )
 
   ##### BLAST prep and run -----
-  if (run_blst & owrt) {
-    ASVs <- dada2::getSequences(seq_in) %>%
-      base::as.data.frame() %>%
-      purrr::set_names("ASVs") %>%
-      dplyr::mutate(ID = 1:nrow(.)) %>%
-      dplyr::select(
-        .data$ID,
-        .data$ASVs
-      )
+  ASVs <- dada2::getSequences(seq_in) %>%
+    base::as.data.frame() %>%
+    purrr::set_names("ASVs") %>%
+    dplyr::mutate(ID = 1:nrow(.)) %>%
+    dplyr::select(
+      .data$ID,
+      .data$ASVs
+    )
 
+  if (run_blst & owrt) {
     ASV_splt <- batch(
       ASVs,
       batches
