@@ -813,6 +813,8 @@ annot_score <- function(x, y, z, org) {
       score
     )
   }
+  
+  df
 }
 
 new_bar <- function(len,

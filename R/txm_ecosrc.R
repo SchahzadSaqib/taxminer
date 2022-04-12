@@ -527,7 +527,8 @@ txm_ecosrc <- function(hit_tbl,
           .f = ~ annot_score(
             data,
             silva,
-            RDP
+            RDP, 
+            org = org
           )
         )
       ) %>%
@@ -580,8 +581,7 @@ txm_ecosrc <- function(hit_tbl,
         score = purrr::pmap(
           .l = list(
             data,
-            unite,
-            org = org
+            unite
           ),
           .f = ~ annot_score(
             data,
