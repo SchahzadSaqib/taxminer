@@ -71,18 +71,21 @@ check_align <- function(db_name,
                         alt_annot,
                         alt_path,
                         org) {
-  if (is.null(db_path)) {
-    stop("Please provide the full path to the database")
-  } else if (!dir.exists(db_path)) {
-    stop(paste("The directory: ",
-      db_path,
-      " does not exist",
-      sep = ""
-    ))
-  }
-
-  if (is.null(db_name)) {
-    stop("Please provide the full name of the database")
+  
+  if (run_blst) {
+    if (is.null(db_path)) {
+      stop("Please provide the full path to the database")
+    } else if (!dir.exists(db_path)) {
+      stop(paste("The directory: ",
+                 db_path,
+                 " does not exist",
+                 sep = ""
+      ))
+    }
+    
+    if (is.null(db_name)) {
+      stop("Please provide the full name of the database")
+    }
   }
 
   if (!is.null(acsn_list)) {
