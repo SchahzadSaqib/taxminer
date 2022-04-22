@@ -401,7 +401,7 @@ txm_ecosrc <- function(hit_tbl,
         purrr::walk(save_dscr(
           .,
           df_filt,
-          here::here("negt_discard.xlsx")
+          here::here("negt_discard.fst")
         ))
     }
 
@@ -431,7 +431,7 @@ txm_ecosrc <- function(hit_tbl,
         purrr::walk(save_dscr(
           .,
           df_filt,
-          here::here("host_discard.xlsx")
+          here::here("host_discard.fst")
         ))
     }
 
@@ -461,7 +461,7 @@ txm_ecosrc <- function(hit_tbl,
         purrr::walk(save_dscr(
           .,
           df_filt,
-          here::here("site_discard.xlsx")
+          here::here("site_discard.fst")
         ))
     }
     df_out <- df_summ %>%
@@ -527,7 +527,7 @@ txm_ecosrc <- function(hit_tbl,
           .f = ~ annot_score(
             data,
             silva,
-            RDP, 
+            RDP,
             org = org
           )
         )

@@ -52,7 +52,7 @@ Word_banks <- list(
   ),
   non_human = c(
     "Veterinary", "Animal clinic", "chicken", "man-made", "human-made",
-    "Horticulture", "plant", "murine", "mice",
+    "Horticulture", "plant", "murine", "mice", "pig", "equine",
     "conservation science and restoration", "DOVE"
   )
 )
@@ -71,18 +71,17 @@ check_align <- function(db_name,
                         alt_annot,
                         alt_path,
                         org) {
-  
   if (run_blst) {
     if (is.null(db_path)) {
       stop("Please provide the full path to the database")
     } else if (!dir.exists(db_path)) {
       stop(paste("The directory: ",
-                 db_path,
-                 " does not exist",
-                 sep = ""
+        db_path,
+        " does not exist",
+        sep = ""
       ))
     }
-    
+
     if (is.null(db_name)) {
       stop("Please provide the full name of the database")
     }
@@ -816,7 +815,7 @@ annot_score <- function(x, y, z, org) {
       score
     )
   }
-  
+
   df
 }
 
@@ -1286,12 +1285,16 @@ negt <- function(x, y) {
         ),
         negate = T
       ) |
-        stringr::str_detect(pooled_data, "ISHAM") |
+        stringr::str_detect(
+          pooled_data,
+          "ISHAM"
+        ) |
         stringr::str_detect(
           host,
           as.character(
             unlist(y)
-          )
+          ),
+          negate = T
         )
     )
 }
@@ -1440,7 +1443,7 @@ meta_extr <- function(x) {
         (is.na(host) & stringr::str_detect(
           .data$Isolation_source,
           pattern = unlist(hm_wbk)
-        )) ~ "human new",
+        )) ~ "Homo sapiens",
         TRUE ~ host
       )
     ) %>%
@@ -1449,7 +1452,15 @@ meta_extr <- function(x) {
 
 save_dscr <- function(x, y, z) {
   t <- y %>%
-    dplyr::filter(!.$AccID %in% x$AccID)
+    dplyr::filter(!.$AccID %in% x$AccID) %>%
+    fst::write_fst(
+      path = z,
+      compress = 100
+    )
 
-  writexl::write_xlsx(t, path = z)
+  print(paste0(
+    nrow(t),
+    " discarded hits written to file: ",
+    z
+  ))
 }
