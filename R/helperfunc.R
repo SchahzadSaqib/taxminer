@@ -695,7 +695,6 @@ rplc <- function(lin) {
 
 ##### txm_ecosrc miscellaneous helper functions -----
 annot_score <- function(x, y, z, org) {
-  prgrs_bar$tick()
   x_lin <- purrr::flatten(x) %>%
     purrr::keep(names(.) %in% c(
       "superkingdom",

@@ -491,16 +491,6 @@ txm_ecosrc <- function(hit_tbl,
       dplyr::group_by(ASVs) %>%
       tidyr::nest(RDP = !ASVs)
 
-    prgrs_bar <- new_bar(
-      nrow(df_out),
-      "adding score"
-    )
-    assign(
-      "prgrs_bar",
-      prgrs_bar,
-      .GlobalEnv
-    )
-
     blst <- df_out %>%
       dplyr::group_by(
         .data$ID,
@@ -553,16 +543,6 @@ txm_ecosrc <- function(hit_tbl,
     ) %>%
       dplyr::group_by(ASVs) %>%
       tidyr::nest(unite = !ASVs)
-
-    prgrs_bar <- new_bar(
-      nrow(df_out),
-      "adding score"
-    )
-    assign(
-      "prgrs_bar",
-      prgrs_bar,
-      .GlobalEnv
-    )
 
     blst <- df_out %>%
       dplyr::group_by(
