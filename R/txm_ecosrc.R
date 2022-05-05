@@ -464,9 +464,17 @@ txm_ecosrc <- function(hit_tbl,
           here::here("site_discard.fst")
         ))
     }
+
+    print("Creating final output")
     df_out <- df_summ %>%
-      dplyr::filter(AccID %in% df_filt$AccID)
+      dtplyr::lazy_dt() %>%
+      dplyr::group_by(ID, AccID) %>%
+      dplyr::inner_join(df_filt) %>%
+      dplyr::select(-pooled_data) %>%
+      dplyr::ungroup() %>%
+      data.frame()
   } else {
+    print("Creating final output")
     df_out <- df_summ
   }
 
@@ -491,6 +499,7 @@ txm_ecosrc <- function(hit_tbl,
       dplyr::group_by(ASVs) %>%
       tidyr::nest(RDP = !ASVs)
 
+    print("Adding scores...")
     blst <- df_out %>%
       dplyr::group_by(
         .data$ID,
@@ -544,6 +553,7 @@ txm_ecosrc <- function(hit_tbl,
       dplyr::group_by(ASVs) %>%
       tidyr::nest(unite = !ASVs)
 
+    print("Adding scores...")
     blst <- df_out %>%
       dplyr::group_by(
         .data$ID,
