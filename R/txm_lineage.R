@@ -33,7 +33,8 @@ txm_lineage <- function(taxids,
     asbd_tbl
   )
 
-  ##### Data preparation -----
+
+  # Data preparation -----
   taxids_src <- taxids %>%
     dplyr::distinct(TaxID)
 
@@ -61,6 +62,8 @@ txm_lineage <- function(taxids,
       ))
     }
 
+
+    ## split data into chunks -----
     splits <- round(nrow(taxids_src) / 200)
     if (splits < 1) splits <- 1
 
@@ -73,7 +76,6 @@ txm_lineage <- function(taxids,
       tidyr::nest() %>%
       dplyr::pull()
 
-    ##### extract lineage -----
     prgrs_bar <- new_bar(length(taxids_src))
     assign(
       "prgrs_bar",
@@ -82,8 +84,12 @@ txm_lineage <- function(taxids,
     )
     print("Retrieving Lineage")
 
-    lineage <- taxids_src %>%
-      purrr::lmap(~ get_lge(.x)) %>%
+
+    ## extract lineage -----
+    get <- taxids_src %>%
+      purrr::lmap(~ get_lge(.x))
+
+    clean <- get %>%
       purrr::flatten() %>%
       purrr::map_dfr(.f = dplyr::bind_cols) %>%
       dplyr::mutate(
@@ -124,7 +130,9 @@ txm_lineage <- function(taxids,
           species,
           "^[^ ]* [^ ]*"
         )
-      ) %>%
+      )
+
+    rearrange <- clean %>%
       tidyr::pivot_longer(-TaxID,
         names_to = "level",
         values_to = "names"
@@ -141,7 +149,9 @@ txm_lineage <- function(taxids,
         id_cols = TaxID,
         names_from = .data$level,
         values_from = .data$names
-      ) %>%
+      )
+
+    lineage <- rearrange %>%
       dplyr::ungroup() %>%
       dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
       as.data.frame() %>%
@@ -158,6 +168,8 @@ txm_lineage <- function(taxids,
         )
       )
 
+
+    ## save -----
     if (!is.null(lineage)) {
       if (!is.na(asbd_tbl)) {
         if (!is.null(taxids_src)) {
@@ -195,9 +207,13 @@ txm_lineage <- function(taxids,
     lineage <- asbd_tbl_sub
   }
 
-  
-  ##### bind to accessions -----
-  df_out <- taxids %>%
-    dplyr::select(-.data$Species) %>%
-    dplyr::left_join(lineage, by = "TaxID")
+
+  ## bind to accessions -----
+  if (any(names(taxids) == "Species")) {
+    df_out <- taxids %>%
+      dplyr::select(-.data$Species) %>%
+      dplyr::left_join(lineage, by = "TaxID")
+  } else {
+    df_out <- lineage
+  }
 }
