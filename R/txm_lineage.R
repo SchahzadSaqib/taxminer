@@ -82,6 +82,18 @@ txm_lineage <- function(taxids,
       prgrs_bar,
       .GlobalEnv
     )
+
+    lge <- c(
+      "superkingdom",
+      "phylum",
+      "class",
+      "order",
+      "family",
+      "genus",
+      "species"
+    ) %>%
+      purrr::map_dfr(~ tibble(!!.x := logical()))
+
     print("Retrieving Lineage")
 
 
@@ -92,6 +104,8 @@ txm_lineage <- function(taxids,
     clean <- get %>%
       purrr::flatten() %>%
       purrr::map_dfr(.f = dplyr::bind_cols) %>%
+      dplyr::bind_rows(lge[setdiff(names(lge), names(.))]) %>%
+      dplyr::select(TaxID, names(lge), everything()) %>%
       dplyr::mutate(
         norank.1 = ifelse(
           "norank.1" %in% names(.),
@@ -111,20 +125,20 @@ txm_lineage <- function(taxids,
         norank.1 = ifelse(is.na(norank.1),
           .data$species,
           norank.1
+        ),
+        norank.1 = ifelse(norank.1 == "bacterium",
+          "unclassified bacterium",
+          norank.1
         )
       ) %>%
       dplyr::select(-tidyselect::contains("species")) %>%
       dplyr::rename("species" = norank.1) %>%
-      dplyr::select(tidyselect::any_of(c(
-        "TaxID",
-        "superkingdom",
-        "phylum",
-        "class",
-        "order",
-        "family",
-        "genus",
-        "species"
-      ))) %>%
+      dplyr::select(tidyselect::all_of(
+        c(
+          "TaxID",
+          names(lge)
+        )
+      )) %>%
       dplyr::mutate(
         species = stringr::str_extract(
           species,
