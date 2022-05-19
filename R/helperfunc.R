@@ -403,14 +403,16 @@ check_ecosrc <- function(hit_tbl,
     }
   }
 
-  if (file.exists(asgn_tbl)
-  ) {
-    stop(paste0(
-      "The following table already exists: ",
-      asgn_tbl,
-      ". Please assign it as 'asbd_tbl'",
-      "or define a different name/directory to create a new table"
-    ))
+  if (is.na(asbd_tbl)) {
+    if (file.exists(asgn_tbl)
+    ) {
+      stop(paste0(
+        "The following table already exists: ",
+        asgn_tbl,
+        ". Please assign it as 'asbd_tbl'",
+        "or define a different name/directory to create a new table"
+      ))
+    }
   }
 }
 
@@ -433,14 +435,16 @@ check_lineage <- function(taxids,
     }
   }
 
-  if (file.exists(asgn_tbl)
-  ) {
-    stop(paste0(
-      "The following table already exists: ",
-      asgn_tbl,
-      ". Please assign it as 'asbd_tbl'",
-      "or define a different name/directory to create a new table"
-    ))
+  if (is.na(asbd_tbl)) {
+    if (file.exists(asgn_tbl)
+    ) {
+      stop(paste0(
+        "The following table already exists: ",
+        asgn_tbl,
+        ". Please assign it as 'asbd_tbl'",
+        "or define a different name/directory to create a new table"
+      ))
+    }
   }
 }
 
