@@ -7,7 +7,7 @@
 txm_lineage(
   taxids,
   asbd_tbl = NA,
-  asgn_tbl = paste("Dataset_lge", Sys.Date(), ".fst", sep = "")
+  asgn_tbl = paste("Dataset_lge_", Sys.Date(), ".fst", sep = "")
 )
 }
 \arguments{

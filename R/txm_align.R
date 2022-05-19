@@ -95,6 +95,8 @@ utils::globalVariables(c(
 #' @param max_out (>0) Default 500. Maximum number of alignments
 #' ("-max_target_seqs"). Higher values are recommended when using large
 #' databases such as "nt/nr".
+#' @param min_hits (Whole number) Default 1. Minimum number of hits per sequence
+#' alignment. IDs with hits lower than this threshold will be removed.  
 #' @export
 #' @importFrom rlang .data
 #' @importFrom data.table fread
@@ -124,7 +126,8 @@ txm_align <- function(seq_in,
                       chunks = 1,
                       qcvg = 98,
                       pctidt = 98,
-                      max_out = 500) {
+                      max_out = 500, 
+                      min_hits = 1) {
 
   ##### Input checks -----
   check_align(
@@ -444,7 +447,7 @@ txm_align <- function(seq_in,
       ) %>%
       dplyr::group_by(ID) %>%
       dplyr::add_tally() %>%
-      dplyr::filter(n > 1) %>%
+      dplyr::filter(n > min_hits) %>%
       dplyr::ungroup() %>%
       base::as.data.frame() %>%
       dplyr::select(

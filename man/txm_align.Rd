@@ -26,7 +26,8 @@ txm_align(
   chunks = 1,
   qcvg = 98,
   pctidt = 98,
-  max_out = 500
+  max_out = 500,
+  min_hits = 1
 )
 }
 \arguments{
@@ -121,6 +122,9 @@ possible and ran in parallel using GNU parallel
 \item{max_out}{(>0) Default 500. Maximum number of alignments
 ("-max_target_seqs"). Higher values are recommended when using large
 databases such as "nt/nr".}
+
+\item{min_hits}{(Whole number) Default 1. Minimum number of hits per sequence
+alignment. IDs with hits lower than this threshold will be removed.}
 }
 \description{
 Build and run a customized BLAST alignment using local cmd line BLAST
