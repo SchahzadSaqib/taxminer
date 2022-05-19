@@ -118,17 +118,27 @@ txm_lineage <- function(taxids,
           .cols = tidyselect::everything(),
           .f = ~ ifelse(stringr::str_detect(
             .x,
-            "environmental samples"
+            "environmental samples|incertae sedis"
           ),
           NA,
           .x
           )
         ),
+        norank.1 = ifelse(
+          stringr::str_ends(
+            species, "sp\\."
+          ),
+          paste0("unclassified ", genus),
+          norank.1
+        ),
         norank.1 = ifelse(is.na(norank.1),
           .data$species,
           norank.1
         ),
-        norank.1 = ifelse(stringr::str_starts(norank.1, "bacterium|unclassified"),
+        norank.1 = ifelse(
+          stringr::str_starts(
+            norank.1, "bacterium|unclassified|uncultured"
+          ),
           NA,
           norank.1
         )
