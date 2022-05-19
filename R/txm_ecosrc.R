@@ -82,7 +82,9 @@ txm_ecosrc <- function(hit_tbl,
     filt_site,
     filt_negt,
     alt_tbl_path,
-    org
+    org, 
+    asbd_tbl, 
+    asgn_tbl
   )
 
   ##### Input preparation -----

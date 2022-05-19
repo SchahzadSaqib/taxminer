@@ -23,14 +23,15 @@ utils::globalVariables(c(
 
 txm_lineage <- function(taxids,
                         asbd_tbl = NA,
-                        asgn_tbl = paste("Dataset_lge",
+                        asgn_tbl = paste("Dataset_lge_",
                           Sys.Date(),
                           ".fst",
                           sep = ""
                         )) {
   check_lineage(
     taxids,
-    asbd_tbl
+    asbd_tbl,
+    asgn_tbl
   )
 
 
@@ -106,6 +107,7 @@ txm_lineage <- function(taxids,
       purrr::map_dfr(.f = dplyr::bind_cols) %>%
       dplyr::bind_rows(lge[setdiff(names(lge), names(.))]) %>%
       dplyr::select(TaxID, names(lge), everything()) %>%
+      dplyr::rowwise() %>%
       dplyr::mutate(
         norank.1 = ifelse(
           "norank.1" %in% names(.),
@@ -126,8 +128,8 @@ txm_lineage <- function(taxids,
           .data$species,
           norank.1
         ),
-        norank.1 = ifelse(norank.1 == "bacterium",
-          "unclassified bacterium",
+        norank.1 = ifelse(stringr::str_starts(norank.1, "bacterium|unclassified"),
+          NA,
           norank.1
         )
       ) %>%
@@ -155,7 +157,7 @@ txm_lineage <- function(taxids,
       dplyr::mutate(names = ifelse(is.na(names),
         paste(
           "unclassified",
-          dplyr::nth(rev(stats::na.omit(names)), 2)
+          dplyr::nth(rev(stats::na.omit(names)), 1)
         ),
         names
       )) %>%

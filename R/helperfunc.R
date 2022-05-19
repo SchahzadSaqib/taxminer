@@ -334,7 +334,9 @@ check_ecosrc <- function(hit_tbl,
                          filt_site,
                          filt_negt,
                          alt_tbl_path,
-                         org) {
+                         org,
+                         asbd_tbl,
+                         asgn_tbl) {
   if (nrow(hit_tbl) == 0) {
     stop("Empty Data.frame - Aborting Relevance filtration")
   }
@@ -391,10 +393,30 @@ check_ecosrc <- function(hit_tbl,
         }
       })
   }
+
+  if (!is.na(asbd_tbl)) {
+    if (!file.exists(asbd_tbl)) {
+      stop(paste("Pre-assembled table does not exist in this location: ",
+        asbd_tbl,
+        sep = ""
+      ))
+    }
+  }
+
+  if (file.exists(asgn_tbl)
+  ) {
+    stop(paste0(
+      "The following table already exists: ",
+      asgn_tbl,
+      ". Please assign it as 'asbd_tbl'",
+      "or define a different name/directory to create a new table"
+    ))
+  }
 }
 
 check_lineage <- function(taxids,
-                          asbd_tbl) {
+                          asbd_tbl,
+                          asgn_tbl) {
   if (!any(names(taxids) %in% "TaxID")) {
     stop(paste("No column named 'TaxID' -",
       "please provide a valid input column",
@@ -409,6 +431,16 @@ check_lineage <- function(taxids,
         sep = ""
       ))
     }
+  }
+
+  if (file.exists(asgn_tbl)
+  ) {
+    stop(paste0(
+      "The following table already exists: ",
+      asgn_tbl,
+      ". Please assign it as 'asbd_tbl'",
+      "or define a different name/directory to create a new table"
+    ))
   }
 }
 
@@ -830,7 +862,7 @@ new_bar <- function(len,
     ),
     total = len,
     clear = FALSE,
-    width = 60,
+    width = 90,
     show_after = 0
   )
 }
