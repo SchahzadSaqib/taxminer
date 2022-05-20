@@ -118,7 +118,7 @@ txm_lineage <- function(taxids,
           .cols = tidyselect::everything(),
           .f = ~ ifelse(stringr::str_detect(
             .x,
-            "environmental samples|incertae sedis"
+            "environmental samples|incertae sedis|unidentified"
           ),
           NA,
           .x
