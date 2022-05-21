@@ -7,7 +7,7 @@ utils::globalVariables(c(
 #' @importFrom rlang .data
 
 
-##### Word banks -----
+# Word banks ----
 # Word banks
 #
 # Full list of word banks being used for text mining based filtration
@@ -58,7 +58,7 @@ Word_banks <- list(
 )
 
 
-##### Input integrity checks -----
+# Input integrity checks ----
 check_align <- function(db_name,
                         db_path,
                         task,
@@ -449,7 +449,7 @@ check_lineage <- function(taxids,
 }
 
 
-##### txm_align miscellaneous functions -----
+# txm_align miscellaneous functions ----
 batch <- function(obj,
                   wth_each) {
   ct_pcs <- round(nrow(obj) / wth_each)
@@ -729,7 +729,145 @@ rplc <- function(lin) {
 }
 
 
-##### txm_ecosrc miscellaneous helper functions -----
+# txm_lineage miscellaneous functions ----
+get_lge <- function(x) {
+  chunk_lin <- try({
+    TaxIDs_post <- rentrez::entrez_post(
+      db = "taxonomy",
+      id = purrr::flatten(x)$TaxID
+    )
+
+    TaxIDs_fetch <- rentrez::entrez_fetch(
+      db = "taxonomy",
+      web_history = TaxIDs_post,
+      rettype = "xml",
+      retmode = "xml",
+      parsed = F
+    )
+
+    lge_xml <- xml2::read_xml(TaxIDs_fetch) %>%
+      xml2::xml_children() %>%
+      xml2::as_list()
+
+    lge_mod1 <- lge_xml %>%
+      purrr::modify_depth(
+        .depth = 1,
+        .f = ~ purrr::keep(
+          .x,
+          names(.x) %in% c(
+            "TaxId",
+            "ScientificName",
+            "LineageEx"
+          )
+        )
+      )
+
+    lge_mod2 <- lge_mod1 %>%
+      purrr::modify_depth(
+        .depth = 1,
+        .f = ~ purrr::modify_at(
+          .x,
+          .at = "LineageEx",
+          .f = function(x) {
+            x <- x %>%
+              purrr::set_names(
+                stringr::str_replace_all(
+                  make.unique(
+                    as.character(
+                      purrr::map(
+                        .,
+                        .f = ~ unlist(.x[["Rank"]])
+                      )
+                    )
+                  ),
+                  " ", ""
+                )
+              ) %>%
+              purrr::keep(!names(.) %in% "species") %>%
+              purrr::map_df(
+                .,
+                .f = ~ unlist(.x[["ScientificName"]])
+              )
+          }
+        )
+      )
+
+    lge_mod3 <- lge_mod2 %>%
+      purrr::modify_depth(
+        .depth = 1,
+        .f = ~ purrr::modify_at(
+          .x,
+          .at = "TaxId",
+          .f = ~ purrr::set_names(.x, "TaxID")
+        )
+      ) %>%
+      purrr::modify_depth(
+        .depth = 1,
+        .f = ~ purrr::modify_at(
+          .x,
+          .at = "ScientificName",
+          .f = ~ purrr::set_names(.x, "species")
+        )
+      ) %>%
+      base::list()
+  })
+
+  if (!class(chunk_lin) == "try-error") {
+    prgrs_bar$tick()
+    Sys.sleep(1)
+    chunk_lin
+  } else {
+    stop()
+  }
+}
+
+get_lge <- purrr::insistently(
+  get_lge,
+  rate = purrr::rate_delay(
+    10,
+    max_times = 4
+  ),
+  quiet = F
+)
+
+lge_cln <- function(x) {
+  x <- x %>%
+    ifelse(
+      stringr::str_detect(
+        .,
+        paste(
+          "environmental samples",
+          "incertae sedis",
+          "unidentified",
+          "clone",
+          "\\/",
+          "group",
+          "enrichment",
+          "culture",
+          "endosymbiont",
+          "\\bsp\\..",
+          "\\bsp\\.$",
+          "\\bbacterium\\b",
+          "unclassified",
+          "uncultured",
+          sep = "|"
+        )
+      ),
+      NA,
+      .
+    ) %>%
+    stringr::str_remove_all(
+      .,
+      "\\s\\w{2}\\.|\\[|\\]|\\'"
+    ) %>%
+    stringr::str_extract_all(
+      .,
+      "^[^ ]* [^ ]*|^[^ ]*"
+    ) %>%
+    unlist()
+}
+
+# txm_ecosrc miscellaneous functions ----
 annot_score <- function(x, y, z, org) {
   x_lin <- purrr::flatten(x) %>%
     purrr::keep(names(.) %in% c(
@@ -1169,100 +1307,6 @@ get_pbdt <- function(pmid,
 get_pbdt <- purrr::insistently(
   get_pbdt,
   rate = purrr::rate_delay(10,
-    max_times = 4
-  ),
-  quiet = F
-)
-
-get_lge <- function(x) {
-  chunk_lin <- try({
-    TaxIDs_post <- rentrez::entrez_post(
-      db = "taxonomy",
-      id = purrr::flatten(x)$TaxID
-    )
-
-    TaxIDs_fetch <- rentrez::entrez_fetch(
-      db = "taxonomy",
-      web_history = TaxIDs_post,
-      rettype = "xml",
-      retmode = "xml",
-      parsed = F
-    )
-
-    xml_lineage <- xml2::read_xml(TaxIDs_fetch) %>%
-      xml2::xml_children() %>%
-      xml2::as_list() %>%
-      purrr::modify_depth(
-        .depth = 1,
-        .f = ~ purrr::keep(
-          .x,
-          names(.x) %in% c(
-            "TaxId",
-            "ScientificName",
-            "LineageEx"
-          )
-        )
-      ) %>%
-      purrr::modify_depth(
-        .depth = 1,
-        .f = ~ purrr::modify_at(
-          .x,
-          .at = "LineageEx",
-          .f = function(x) {
-            x <- x %>%
-              purrr::set_names(
-                stringr::str_replace_all(
-                  make.unique(
-                    as.character(
-                      purrr::map(
-                        .,
-                        .f = ~ unlist(.x[["Rank"]])
-                      )
-                    )
-                  ),
-                  " ", ""
-                )
-              ) %>%
-              purrr::keep(!names(.) %in% "species") %>%
-              purrr::map_df(
-                .,
-                .f = ~ unlist(.x[["ScientificName"]])
-              )
-          }
-        )
-      ) %>%
-      purrr::modify_depth(
-        .depth = 1,
-        .f = ~ purrr::modify_at(
-          .x,
-          .at = "TaxId",
-          .f = ~ purrr::set_names(.x, "TaxID")
-        )
-      ) %>%
-      purrr::modify_depth(
-        .depth = 1,
-        .f = ~ purrr::modify_at(
-          .x,
-          .at = "ScientificName",
-          .f = ~ purrr::set_names(.x, "species")
-        )
-      ) %>%
-      base::list()
-  })
-
-  if (!class(chunk_lin) == "try-error") {
-    prgrs_bar$tick()
-    Sys.sleep(1)
-    chunk_lin
-  } else {
-    stop()
-  }
-}
-
-get_lge <- purrr::insistently(
-  get_lge,
-  rate = purrr::rate_delay(
-    10,
     max_times = 4
   ),
   quiet = F

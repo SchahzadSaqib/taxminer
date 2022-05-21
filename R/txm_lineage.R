@@ -114,35 +114,14 @@ txm_lineage <- function(taxids,
           norank.1,
           NA
         ),
-        dplyr::across(
-          .cols = tidyselect::everything(),
-          .f = ~ ifelse(stringr::str_detect(
-            .x,
-            "environmental samples|incertae sedis|unidentified"
-          ),
-          NA,
-          .x
-          )
-        ),
-        norank.1 = ifelse(
-          stringr::str_ends(
-            species, "sp\\."
-          ),
-          paste0("unclassified ", genus),
-          norank.1
-        ),
-        norank.1 = ifelse(is.na(norank.1),
+        across(
+        .cols = tidyr::everything(), 
+        .fns = ~ lge_cln(.x)
+      ), 
+      norank.1 = ifelse(is.na(norank.1),
           .data$species,
           norank.1
-        ),
-        norank.1 = ifelse(
-          stringr::str_starts(
-            norank.1, "bacterium|unclassified|uncultured"
-          ),
-          NA,
-          norank.1
-        )
-      ) %>%
+        )) %>%
       dplyr::select(-tidyselect::contains("species")) %>%
       dplyr::rename("species" = norank.1) %>%
       dplyr::select(tidyselect::all_of(
@@ -150,32 +129,38 @@ txm_lineage <- function(taxids,
           "TaxID",
           names(lge)
         )
-      )) %>%
-      dplyr::mutate(
-        species = stringr::str_extract(
-          species,
-          "^[^ ]* [^ ]*"
-        )
-      )
+      )) %>% 
+      data.frame()
 
     rearrange <- clean %>%
-      tidyr::pivot_longer(-TaxID,
-        names_to = "level",
-        values_to = "names"
+      tidyr::pivot_longer(-c(TaxID, species),
+                          names_to = "level",
+                          values_to = "names"
       ) %>%
-      dplyr::group_by(TaxID) %>%
-      dplyr::mutate(names = ifelse(is.na(names),
-        paste(
-          "unclassified",
-          dplyr::nth(rev(stats::na.omit(names)), 1)
+      dplyr::group_by(TaxID, species) %>%
+      dplyr::mutate(
+        species = ifelse(is.na(species),
+                         paste(
+                           "unclassified",
+                           dplyr::nth(rev(stats::na.omit(names)), 1)
+                         ),
+                         species
         ),
-        names
-      )) %>%
+        names = ifelse(is.na(names),
+                       paste(
+                         "unclassified",
+                         dplyr::nth(rev(stats::na.omit(names)), 1)
+                       ),
+                       names
+        )
+      ) %>%
       tidyr::pivot_wider(
-        id_cols = TaxID,
+        id_cols = c(TaxID, species),
         names_from = .data$level,
         values_from = .data$names
-      )
+      ) %>%
+      dplyr::relocate(species, .after = genus)
+      
 
     lineage <- rearrange %>%
       dplyr::ungroup() %>%
