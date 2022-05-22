@@ -50,9 +50,11 @@ utils::globalVariables(c(
 #' environment.
 #' @param filt_negt (String) Default NA. Disregard annotations that contain
 #' these terms.
-#' @param do_filt (Logical) Default TRUE. Perform filtration using the word
+#' @param do_filt (Logical) Default FALSE. Perform filtration using the word
 #' banks. If FALSE the output will contain all accession IDs and the extracted
 #' information associated to them.
+#' @param add_scrs (Logical) Default FALSE. Add scores to each hit based on
+#' alternative alignments to silva, RDP, or UNITE databases.
 #' @param asbd_tbl (String) Default NA. Specify the name of the pre-compiled
 #' database present within the directory.
 #' @param asgn_tbl (String) Default Dataset + system date. Name of a new
@@ -68,7 +70,8 @@ txm_ecosrc <- function(hit_tbl,
                        filt_negt = NA,
                        alt_tbl_path = NULL,
                        org = "bac",
-                       do_filt = T,
+                       do_filt = FALSE,
+                       add_scrs = FALSE,
                        asbd_tbl = NA,
                        asgn_tbl = paste("Dataset_",
                          Sys.Date(),
@@ -82,12 +85,12 @@ txm_ecosrc <- function(hit_tbl,
     filt_site,
     filt_negt,
     alt_tbl_path,
-    org, 
-    asbd_tbl, 
+    org,
+    asbd_tbl,
     asgn_tbl
   )
 
-  ##### Input preparation -----
+  # Input preparation ----
   ids_src <- hit_tbl %>%
     dplyr::distinct(.data$AccID) %>%
     dplyr::filter(stringr::str_detect(.data$AccID, "\\."))
@@ -145,7 +148,7 @@ txm_ecosrc <- function(hit_tbl,
       )
     }
 
-    ##### Accession ID retrieval -----
+    # Accession ID retrieval ----
     if (!file.exists(
       here::here(
         "temp_files",
@@ -198,7 +201,7 @@ txm_ecosrc <- function(hit_tbl,
     }
 
 
-    ##### PMIDs retrieval -----
+    # PMIDs retrieval ----
     pmids <- ids_src %>%
       rm_prv()
 
@@ -231,7 +234,7 @@ txm_ecosrc <- function(hit_tbl,
 
     rm(to_rm, envir = .GlobalEnv)
 
-    ##### PubMed data retrieval -----
+    # PubMed data retrieval ----
     if (nrow(pmids) > 0) {
       pmids_src <- pmids %>%
         dplyr::select(.data$PMID) %>%
@@ -334,7 +337,7 @@ txm_ecosrc <- function(hit_tbl,
     )
 
 
-  ##### filter preparation ----
+  # filter preparation ----
   if (do_filt) {
     if (!is.na(filt_host[1])) {
       host_wbk <- purrr::map(
@@ -376,7 +379,7 @@ txm_ecosrc <- function(hit_tbl,
         na.rm = T
       )
 
-    ##### filtration -----
+    # filtration ----
     if (!is.na(negt_wbk[1])) {
       print(paste(
         "Removing",
@@ -480,118 +483,121 @@ txm_ecosrc <- function(hit_tbl,
     df_out <- df_summ
   }
 
-
-  ##### add scores for annotations -----
-  if (org == "bac") {
-    silva <- fst::read_fst(
-      here::here(
-        alt_tbl_path,
-        "Silva_annot.fst"
-      )
-    ) %>%
-      dplyr::group_by(ASVs) %>%
-      tidyr::nest(silva = !ASVs)
-
-    rdp <- fst::read_fst(
-      here::here(
-        alt_tbl_path,
-        "RDP_annot.fst"
-      )
-    ) %>%
-      dplyr::group_by(ASVs) %>%
-      tidyr::nest(RDP = !ASVs)
-
-    print("Adding scores...")
-    blst <- df_out %>%
-      dplyr::group_by(
-        .data$ID,
-        .data$ASVs,
-        .data$AccID
-      ) %>%
-      dplyr::distinct(.data$AccID,
-        .keep_all = TRUE
-      ) %>%
-      tidyr::nest() %>%
-      dplyr::left_join(silva,
-        by = "ASVs"
-      ) %>%
-      dplyr::left_join(rdp,
-        by = "ASVs"
-      ) %>%
-      dplyr::mutate(
-        score = purrr::pmap(
-          .l = list(
-            data,
-            silva,
-            RDP
-          ),
-          .f = ~ annot_score(
-            data,
-            silva,
-            RDP,
-            org = org
-          )
+  if (add_scrs) {
+    # add scores for annotations ----
+    if (org == "bac") {
+      silva <- fst::read_fst(
+        here::here(
+          alt_tbl_path,
+          "Silva_annot.fst"
         )
       ) %>%
-      dplyr::select(-c(silva, RDP)) %>%
-      tidyr::unnest(cols = -c(
-        ID,
-        ASVs,
-        AccID
-      )) %>%
-      dplyr::arrange(
-        ID,
-        dplyr::desc(score)
-      )
-  }
+        dplyr::group_by(ASVs) %>%
+        tidyr::nest(silva = !ASVs)
 
-  if (org == "fungi") {
-    unite <- fst::read_fst(
-      here::here(
-        alt_tbl_path,
-        "UNITE_annot.fst"
-      )
-    ) %>%
-      dplyr::group_by(ASVs) %>%
-      tidyr::nest(unite = !ASVs)
-
-    print("Adding scores...")
-    blst <- df_out %>%
-      dplyr::group_by(
-        .data$ID,
-        .data$ASVs,
-        .data$AccID
-      ) %>%
-      dplyr::distinct(.data$AccID,
-        .keep_all = TRUE
-      ) %>%
-      tidyr::nest() %>%
-      dplyr::left_join(unite,
-        by = "ASVs"
-      ) %>%
-      dplyr::mutate(
-        score = purrr::pmap(
-          .l = list(
-            data,
-            unite
-          ),
-          .f = ~ annot_score(
-            data,
-            unite,
-            org = org
-          )
+      rdp <- fst::read_fst(
+        here::here(
+          alt_tbl_path,
+          "RDP_annot.fst"
         )
       ) %>%
-      dplyr::select(-unite) %>%
-      tidyr::unnest(cols = -c(
-        ID,
-        ASVs,
-        AccID
-      )) %>%
-      dplyr::arrange(
-        ID,
-        dplyr::desc(score)
-      )
+        dplyr::group_by(ASVs) %>%
+        tidyr::nest(RDP = !ASVs)
+
+      print("Adding scores...")
+      blst <- df_out %>%
+        dplyr::group_by(
+          .data$ID,
+          .data$ASVs,
+          .data$AccID
+        ) %>%
+        dplyr::distinct(.data$AccID,
+          .keep_all = TRUE
+        ) %>%
+        tidyr::nest() %>%
+        dplyr::left_join(silva,
+          by = "ASVs"
+        ) %>%
+        dplyr::left_join(rdp,
+          by = "ASVs"
+        ) %>%
+        dplyr::mutate(
+          score = purrr::pmap(
+            .l = list(
+              data,
+              silva,
+              RDP
+            ),
+            .f = ~ annot_score(
+              data,
+              silva,
+              RDP,
+              org = org
+            )
+          )
+        ) %>%
+        dplyr::select(-c(silva, RDP)) %>%
+        tidyr::unnest(cols = -c(
+          ID,
+          ASVs,
+          AccID
+        )) %>%
+        dplyr::arrange(
+          ID,
+          dplyr::desc(score)
+        )
+    }
+
+    if (org == "fungi") {
+      unite <- fst::read_fst(
+        here::here(
+          alt_tbl_path,
+          "UNITE_annot.fst"
+        )
+      ) %>%
+        dplyr::group_by(ASVs) %>%
+        tidyr::nest(unite = !ASVs)
+
+      print("Adding scores...")
+      blst <- df_out %>%
+        dplyr::group_by(
+          .data$ID,
+          .data$ASVs,
+          .data$AccID
+        ) %>%
+        dplyr::distinct(.data$AccID,
+          .keep_all = TRUE
+        ) %>%
+        tidyr::nest() %>%
+        dplyr::left_join(unite,
+          by = "ASVs"
+        ) %>%
+        dplyr::mutate(
+          score = purrr::pmap(
+            .l = list(
+              data,
+              unite
+            ),
+            .f = ~ annot_score(
+              data,
+              unite,
+              org = org
+            )
+          )
+        ) %>%
+        dplyr::select(-unite) %>%
+        tidyr::unnest(cols = -c(
+          ID,
+          ASVs,
+          AccID
+        )) %>%
+        dplyr::arrange(
+          ID,
+          dplyr::desc(score)
+        )
+    }
+  } else {
+    blst <- df_out
   }
 
   rm(prgrs_bar, envir = .GlobalEnv)
