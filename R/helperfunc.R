@@ -543,9 +543,10 @@ trmnl_cmd <- function(task,
   )
 
   out_fmt <- paste(
-    "-max_target_seqs",
+    "-max_hsps 1 -max_target_seqs",
     max_out,
-    "-outfmt \"'6 qacc saccver staxids sscinames bitscore evalue qcovs pident'\""
+    "-outfmt",
+    "\"'6 qacc saccver staxids sscinames bitscore evalue qcovs pident'\""
   )
 
   cmd <- paste(

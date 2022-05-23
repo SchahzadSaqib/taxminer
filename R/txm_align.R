@@ -129,7 +129,7 @@ txm_align <- function(seq_in,
                       max_out = 500, 
                       min_hits = 1) {
 
-  ##### Input checks -----
+  # Input checks ----
   check_align(
     db_name,
     db_path,
@@ -145,15 +145,16 @@ txm_align <- function(seq_in,
     org
   )
 
-  ##### BLAST prep and run -----
+  # BLAST prep and run ----
   ASVs <- dada2::getSequences(seq_in) %>%
-    base::as.data.frame() %>%
+    base::data.frame() %>%
     purrr::set_names("ASVs") %>%
     dplyr::mutate(ID = 1:nrow(.)) %>%
     dplyr::select(
       .data$ID,
       .data$ASVs
-    )
+    ) %>% 
+    dplyr::slice(1:10)
 
   if (run_blst & owrt) {
     ASV_splt <- batch(
@@ -199,7 +200,7 @@ txm_align <- function(seq_in,
   }
 
 
-  ##### Alternative annotations (Silva + RDP + UNITE) -----
+  # Alternative annotations (Silva + RDP + UNITE) ----
   if (alt_annot) {
     list_dbs <- list.files(alt_path)
     set.seed(10)
@@ -231,7 +232,7 @@ txm_align <- function(seq_in,
             allowMultiple = T,
             tryRC = T
           ) %>%
-          data.frame() %>%
+          base::data.frame() %>%
           tibble::rownames_to_column(
             var = "ASVs"
           ) %>%
@@ -292,7 +293,7 @@ txm_align <- function(seq_in,
             allowMultiple = T,
             tryRC = T
           ) %>%
-          data.frame() %>%
+          base::data.frame() %>%
           tibble::rownames_to_column(
             var = "ASVs"
           ) %>%
@@ -338,7 +339,7 @@ txm_align <- function(seq_in,
           multithread = T,
           tryRC = T
         ) %>%
-          data.frame() %>%
+          base::data.frame() %>%
           dplyr::rename_with(tolower) %>%
           dplyr::mutate(kingdom = "Eukaryota") %>%
           tibble::rownames_to_column(
@@ -389,7 +390,7 @@ txm_align <- function(seq_in,
   }
 
 
-  ##### Process alignment results -----
+  # Process alignment results ----
   align_path <- here::here(
     tab_path,
     paste("Alignment_",
@@ -402,7 +403,7 @@ txm_align <- function(seq_in,
   if (nrow(
     data.table::fread(align_path)
   ) > 0) {
-    outtab <- data.table::fread(
+    align_tab <- data.table::fread(
       paste(here::here(
         tab_path,
         paste("Alignment_",
@@ -411,7 +412,7 @@ txm_align <- function(seq_in,
           sep = ""
         )
       ))
-    ) %>%
+    ) %>% 
       magrittr::set_colnames(c(
         "ID",
         "AccID",
@@ -421,8 +422,12 @@ txm_align <- function(seq_in,
         "Evalue",
         "qcovs",
         "Pct"
-      )) %>%
-      dtplyr::lazy_dt() %>%
+      ))
+      
+    filt_tab <- align_tab %>% 
+      dplyr::group_by(ID) %>%
+      dplyr::add_tally() %>%
+      dplyr::filter(n > min_hits) %>%
       dplyr::filter(.data$qcovs >= qcvg) %>%
       dplyr::mutate(
         TaxID = as.numeric(
@@ -435,21 +440,11 @@ txm_align <- function(seq_in,
           .data$Species,
           "^[^;]*"
         )
-      ) %>%
-      dplyr::left_join(ASVs) %>%
-      dplyr::group_by(ID, AccID) %>%
-      dplyr::filter(bitscore == max(bitscore)) %>%
-      dplyr::filter(Pct == max(Pct)) %>%
-      dplyr::filter(qcovs == max(qcovs)) %>%
-      dplyr::filter(Evalue == min(Evalue)) %>%
-      dplyr::distinct(AccID,
-        .keep_all = T
-      ) %>%
-      dplyr::group_by(ID) %>%
-      dplyr::add_tally() %>%
-      dplyr::filter(n > min_hits) %>%
-      dplyr::ungroup() %>%
-      base::as.data.frame() %>%
+      ) %>% 
+      base::data.frame()
+    
+    out_tab <- filt_tab %>% 
+      dplyr::left_join(ASVs) %>% 
       dplyr::select(
         .data$ID,
         .data$ASVs,
@@ -457,7 +452,7 @@ txm_align <- function(seq_in,
         .data$AccID,
         tidyselect::everything()
       ) %>%
-      txm_lineage(
+      taxminer::txm_lineage(
         taxids = .,
         asbd_tbl = asbd_tbl_lge,
         asgn_tbl = asgn_tbl_lge
