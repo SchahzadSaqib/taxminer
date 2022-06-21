@@ -1123,13 +1123,13 @@ get_pbids <- function(accID,
       by_id = TRUE,
       rettype = "native",
       idtype = "acc"
-    ) 
-    
+    )
+
     if (length(purrr::flatten(accID)$AccID) == 1) {
       ids_elink <- list(ids_elink)
     }
-    
-    ids_elink <- ids_elink %>% 
+
+    ids_elink <- ids_elink %>%
       purrr::set_names(
         purrr::flatten(accID)$AccID
       ) %>%
@@ -1199,6 +1199,14 @@ get_pbdt <- function(pmid,
           .x,
           names(.x) %in% "MedlineCitation"
         )
+      ) %>%
+      purrr::modify_depth(
+        .depth = 2,
+        .f = ~ modify_at(
+          .x,
+          .at = "PMID",
+          .f = ~ purrr::set_names(.x, "PMID")
+        )
       )
 
     pmids_cn2 <- pmids_cn1 %>%
@@ -1213,6 +1221,7 @@ get_pbdt <- function(pmid,
           )
         )
       )
+
 
     pmids_cn3 <- pmids_cn2 %>%
       purrr::modify_depth(
@@ -1279,7 +1288,14 @@ get_pbdt <- function(pmid,
           )
         )
       ) %>%
-      purrr::map_dfr(.f = bind_cols) %>%
+      purrr::map_dfr(.f = dplyr::bind_cols)
+
+    if (!any(names(pmids_cn6) == "MeshHeadingList")) {
+      pmids_cn6 <- pmids_cn6 %>%
+        tibble::add_column("Mesh" = NA)
+    }
+
+    pmids_cn7 <- pmids_cn6 %>%
       purrr::set_names(
         c(
           "PMID",

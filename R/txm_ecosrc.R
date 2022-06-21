@@ -185,7 +185,7 @@ txm_ecosrc <- function(hit_tbl,
         purrr::map_dfr(.f = ~ meta_extr(.x))
 
       rm(prgrs_bar, envir = .GlobalEnv)
-      
+
       fst::write_fst(
         df_summ,
         here::here(
@@ -280,9 +280,8 @@ txm_ecosrc <- function(hit_tbl,
         dplyr::left_join(pbdt,
           by = "AccID"
         )
-      
+
       rm(prgrs_bar, envir = .GlobalEnv)
-      
     } else {
       df_summ <- df_summ %>%
         dplyr::rename("AccID" = AccessionVersion) %>%
