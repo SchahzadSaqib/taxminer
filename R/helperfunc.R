@@ -1123,7 +1123,13 @@ get_pbids <- function(accID,
       by_id = TRUE,
       rettype = "native",
       idtype = "acc"
-    ) %>%
+    ) 
+    
+    if (length(purrr::flatten(accID)$AccID) == 1) {
+      ids_elink <- list(ids_elink)
+    }
+    
+    ids_elink <- ids_elink %>% 
       purrr::set_names(
         purrr::flatten(accID)$AccID
       ) %>%

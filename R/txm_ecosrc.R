@@ -184,6 +184,8 @@ txm_ecosrc <- function(hit_tbl,
         dplyr::pull() %>%
         purrr::map_dfr(.f = ~ meta_extr(.x))
 
+      rm(prgrs_bar, envir = .GlobalEnv)
+      
       fst::write_fst(
         df_summ,
         here::here(
@@ -233,7 +235,7 @@ txm_ecosrc <- function(hit_tbl,
         base::data.frame()
     }
 
-    rm(to_rm, envir = .GlobalEnv)
+    rm(to_rm, prgrs_bar, envir = .GlobalEnv)
 
     # PubMed data retrieval ----
     if (nrow(pmids) > 0) {
@@ -278,6 +280,9 @@ txm_ecosrc <- function(hit_tbl,
         dplyr::left_join(pbdt,
           by = "AccID"
         )
+      
+      rm(prgrs_bar, envir = .GlobalEnv)
+      
     } else {
       df_summ <- df_summ %>%
         dplyr::rename("AccID" = AccessionVersion) %>%
@@ -600,8 +605,6 @@ txm_ecosrc <- function(hit_tbl,
   } else {
     blst <- df_out
   }
-
-  rm(prgrs_bar, envir = .GlobalEnv)
 
   blst
 }
