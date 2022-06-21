@@ -86,6 +86,7 @@ txm_ecosrc <- function(hit_tbl,
     filt_negt,
     alt_tbl_path,
     org,
+    add_scrs,
     asbd_tbl,
     asgn_tbl
   )

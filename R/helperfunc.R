@@ -335,6 +335,7 @@ check_ecosrc <- function(hit_tbl,
                          filt_negt,
                          alt_tbl_path,
                          org,
+                         add_scrs,
                          asbd_tbl,
                          asgn_tbl) {
   if (nrow(hit_tbl) == 0) {
@@ -365,33 +366,36 @@ check_ecosrc <- function(hit_tbl,
     }
   }
 
-  list_tbls <- list.files(alt_tbl_path)
 
-  if (org == "bac") {
-    to_find <- list(
-      "Silva_annot.fst",
-      "RDP_annot.fst"
-    ) %>%
-      purrr::map(.f = function(x) {
-        check <- stringr::str_subset(list_tbls, x) %>%
-          purrr::is_empty()
-        if (check) {
-          stop(paste(x, "not found in the specified directory"))
-        }
-      })
-  }
+  if (add_scrs) {
+    list_tbls <- list.files(alt_tbl_path)
 
-  if (org == "fungi") {
-    to_find <- list(
-      "UNITE_annot.fst"
-    ) %>%
-      purrr::map(.f = function(x) {
-        check <- stringr::str_subset(list_tbls, x) %>%
-          purrr::is_empty()
-        if (check) {
-          stop(paste(x, "not found in the specified directory"))
-        }
-      })
+    if (org == "bac") {
+      to_find <- list(
+        "Silva_annot.fst",
+        "RDP_annot.fst"
+      ) %>%
+        purrr::map(.f = function(x) {
+          check <- stringr::str_subset(list_tbls, x) %>%
+            purrr::is_empty()
+          if (check) {
+            stop(paste(x, "not found in the specified directory"))
+          }
+        })
+    }
+
+    if (org == "fungi") {
+      to_find <- list(
+        "UNITE_annot.fst"
+      ) %>%
+        purrr::map(.f = function(x) {
+          check <- stringr::str_subset(list_tbls, x) %>%
+            purrr::is_empty()
+          if (check) {
+            stop(paste(x, "not found in the specified directory"))
+          }
+        })
+    }
   }
 
   if (!is.na(asbd_tbl)) {
