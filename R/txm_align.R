@@ -153,8 +153,7 @@ txm_align <- function(seq_in,
     dplyr::select(
       .data$ID,
       .data$ASVs
-    ) %>% 
-    dplyr::slice(1:10)
+    )
 
   if (run_blst & owrt) {
     ASV_splt <- batch(
