@@ -6,7 +6,7 @@ utils::globalVariables(c(
   "owrt_silva",
   "owrt_RDP",
   "owrt_unite",
-  "ASVs",
+  "Seq",
   "bitscore",
   "Pct",
   "family",
@@ -96,7 +96,7 @@ utils::globalVariables(c(
 #' ("-max_target_seqs"). Higher values are recommended when using large
 #' databases such as "nt/nr".
 #' @param min_hits (Whole number) Default 1. Minimum number of hits per sequence
-#' alignment. IDs with hits lower than this threshold will be removed.  
+#' alignment. IDs with hits lower than this threshold will be removed.
 #' @export
 #' @importFrom rlang .data
 #' @importFrom data.table fread
@@ -126,7 +126,7 @@ txm_align <- function(seq_in,
                       chunks = 1,
                       qcvg = 98,
                       pctidt = 98,
-                      max_out = 500, 
+                      max_out = 500,
                       min_hits = 1) {
 
   # Input checks ----
@@ -145,44 +145,86 @@ txm_align <- function(seq_in,
     org
   )
 
-  # BLAST prep and run ----
-  ASVs <- dada2::getSequences(seq_in) %>%
-    base::data.frame() %>%
-    purrr::set_names("ASVs") %>%
-    dplyr::mutate(ID = 1:nrow(.)) %>%
-    dplyr::select(
-      .data$ID,
-      .data$ASVs
+
+  if (run_blst && owrt) {
+
+    # BLAST prep and run ----
+    temp <- here::here(
+      tab_path,
+      "temp"
     )
 
-  if (run_blst & owrt) {
-    ASV_splt <- batch(
-      ASVs,
-      batches
-    )
+    assign("temp", temp, envir = .GlobalEnv)
 
-    print(
-      paste(
-        nrow(ASVs),
-        " sequences will be aligned - batches: ",
-        length(ASV_splt),
-        ", chunks: ",
-        chunks,
-        sep = ""
+    if (!dir.exists(temp)) {
+      dir.create(temp,
+        recursive = TRUE
+      )
+    }
+
+    if (is.character(seq_in) && file.exists(seq_in)) {
+      seq_obj <- seq_in
+    } else {
+      fa <- seq_in %>%
+        base::colnames() %>%
+        base::data.frame() %>%
+        base::data.frame() %>%
+        purrr::set_names("Seq") %>%
+        dplyr::mutate(ID = paste0("seq_1.", 1:nrow(.))) %>%
+        dplyr::select(
+          .data$ID,
+          .data$Seq
+        ) %>%
+        mk_fasta() %>%
+        readr::write_lines(
+          file = here::here(
+            temp,
+            "to_align.fa"
+          )
+        )
+
+      seq_obj <- list.files(
+        path = temp,
+        pattern = "*.fa",
+        full.names = TRUE
+      )
+    }
+
+    index <- system2(
+      command = "seqkit",
+      args = paste0(
+        "fx2tab ",
+        seq_obj,
+        " -i > ",
+        here::here(
+          tab_path,
+          paste0(
+            "Index_",
+            tab_out,
+            ".txt"
+          )
+        )
       )
     )
 
+    seq_splt <- mk_splts(
+      seq_obj,
+      batches,
+      "batch"
+    )
+
     prgrs_bar <- new_bar(
-      length(ASV_splt),
+      length(seq_splt),
       "aligning"
     )
+
     assign("prgrs_bar",
       prgrs_bar,
       envir = .GlobalEnv
     )
 
-    blst_run <- ASV_splt %>%
-      purrr::iwalk(~ blast_run(
+    align <- seq_splt %>%
+      purrr::iwalk(~ algn_blast(
         .x,
         task,
         db_path,
@@ -196,6 +238,10 @@ txm_align <- function(seq_in,
         max_out,
         chunks
       ))
+
+    base::unlink(temp,
+      recursive = TRUE
+    )
   }
 
 
@@ -233,9 +279,9 @@ txm_align <- function(seq_in,
           ) %>%
           base::data.frame() %>%
           tibble::rownames_to_column(
-            var = "ASVs"
+            var = "Seq"
           ) %>%
-          dplyr::group_by(ASVs) %>%
+          dplyr::group_by(Seq) %>%
           tidyr::nest() %>%
           dplyr::mutate(data = purrr::map(
             data,
@@ -261,7 +307,10 @@ txm_align <- function(seq_in,
         fst::write_fst(annot_silva_sp,
           path = here::here(
             tab_path,
-            "Silva_annot.fst"
+            paste0(
+              tab_out,
+              "_silva_annot.fst"
+            )
           )
         )
       }
@@ -294,9 +343,9 @@ txm_align <- function(seq_in,
           ) %>%
           base::data.frame() %>%
           tibble::rownames_to_column(
-            var = "ASVs"
+            var = "Seq"
           ) %>%
-          dplyr::group_by(ASVs) %>%
+          dplyr::group_by(Seq) %>%
           tidyr::nest() %>%
           dplyr::mutate(data = purrr::map(
             data,
@@ -316,7 +365,10 @@ txm_align <- function(seq_in,
         fst::write_fst(annot_rdp_sp,
           path = here::here(
             tab_path,
-            "RDP_annot.fst"
+            paste0(
+              tab_out,
+              "_rdp_annot.fst"
+            )
           )
         )
       }
@@ -342,7 +394,7 @@ txm_align <- function(seq_in,
           dplyr::rename_with(tolower) %>%
           dplyr::mutate(kingdom = "Eukaryota") %>%
           tibble::rownames_to_column(
-            var = "ASVs"
+            var = "Seq"
           ) %>%
           dplyr::mutate(
             dplyr::across(
@@ -373,7 +425,10 @@ txm_align <- function(seq_in,
         fst::write_fst(annot_unite,
           path = here::here(
             tab_path,
-            "UNITE_annot.fst"
+            paste0(
+              tab_out,
+              "_UNITE_annot.fst"
+            )
           )
         )
       }
@@ -411,7 +466,7 @@ txm_align <- function(seq_in,
           sep = ""
         )
       ))
-    ) %>% 
+    ) %>%
       magrittr::set_colnames(c(
         "ID",
         "AccID",
@@ -422,8 +477,8 @@ txm_align <- function(seq_in,
         "qcovs",
         "Pct"
       ))
-      
-    filt_tab <- align_tab %>% 
+
+    filt_tab <- align_tab %>%
       dplyr::group_by(ID) %>%
       dplyr::add_tally() %>%
       dplyr::filter(n > min_hits) %>%
@@ -439,14 +494,32 @@ txm_align <- function(seq_in,
           .data$Species,
           "^[^;]*"
         )
-      ) %>% 
+      ) %>%
       base::data.frame()
-    
-    out_tab <- filt_tab %>% 
-      dplyr::left_join(ASVs) %>% 
+
+    index <- readr::read_delim(
+      here::here(
+        tab_path,
+        paste0(
+          "Index_",
+          tab_out,
+          ".txt"
+        )
+      ),
+      col_names = FALSE,
+      col_select = 1:2,
+      show_col_types = FALSE
+    ) %>%
+      purrr::set_names(
+        "ID",
+        "Seq"
+      )
+
+
+    out_tab <- filt_tab %>%
+      dplyr::left_join(index) %>%
       dplyr::select(
         .data$ID,
-        .data$ASVs,
         .data$TaxID,
         .data$AccID,
         tidyselect::everything()

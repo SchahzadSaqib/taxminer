@@ -69,6 +69,7 @@ txm_ecosrc <- function(hit_tbl,
                        filt_site = NA,
                        filt_negt = NA,
                        alt_tbl_path = NULL,
+                       alt_tbl_name = NULL,
                        org = "bac",
                        do_filt = FALSE,
                        add_scrs = FALSE,
@@ -85,6 +86,7 @@ txm_ecosrc <- function(hit_tbl,
     filt_site,
     filt_negt,
     alt_tbl_path,
+    alt_tbl_name,
     org,
     add_scrs,
     asbd_tbl,
@@ -494,26 +496,32 @@ txm_ecosrc <- function(hit_tbl,
       silva <- fst::read_fst(
         here::here(
           alt_tbl_path,
-          "Silva_annot.fst"
+          paste0(
+            alt_tbl_name,
+            "_silva_annot.fst"
+          )
         )
       ) %>%
-        dplyr::group_by(ASVs) %>%
-        tidyr::nest(silva = !ASVs)
+        dplyr::group_by(Seq) %>%
+        tidyr::nest(silva = !Seq)
 
       rdp <- fst::read_fst(
         here::here(
           alt_tbl_path,
-          "RDP_annot.fst"
+          paste0(
+            alt_tbl_name,
+            "_rdp_annot.fst"
+          )
         )
       ) %>%
-        dplyr::group_by(ASVs) %>%
-        tidyr::nest(RDP = !ASVs)
+        dplyr::group_by(Seq) %>%
+        tidyr::nest(RDP = !Seq)
 
       print("Adding scores...")
       blst <- df_out %>%
         dplyr::group_by(
           .data$ID,
-          .data$ASVs,
+          .data$Seq,
           .data$AccID
         ) %>%
         dplyr::distinct(.data$AccID,
@@ -521,10 +529,10 @@ txm_ecosrc <- function(hit_tbl,
         ) %>%
         tidyr::nest() %>%
         dplyr::left_join(silva,
-          by = "ASVs"
+          by = "Seq"
         ) %>%
         dplyr::left_join(rdp,
-          by = "ASVs"
+          by = "Seq"
         ) %>%
         dplyr::mutate(
           score = purrr::pmap(
@@ -544,7 +552,7 @@ txm_ecosrc <- function(hit_tbl,
         dplyr::select(-c(silva, RDP)) %>%
         tidyr::unnest(cols = -c(
           ID,
-          ASVs,
+          Seq,
           AccID
         )) %>%
         dplyr::arrange(
@@ -557,17 +565,20 @@ txm_ecosrc <- function(hit_tbl,
       unite <- fst::read_fst(
         here::here(
           alt_tbl_path,
-          "UNITE_annot.fst"
+          paste0(
+            alt_tbl_name,
+            "_UNITE_annot.fst"
+          )
         )
       ) %>%
-        dplyr::group_by(ASVs) %>%
-        tidyr::nest(unite = !ASVs)
+        dplyr::group_by(Seq) %>%
+        tidyr::nest(unite = !Seq)
 
       print("Adding scores...")
       blst <- df_out %>%
         dplyr::group_by(
           .data$ID,
-          .data$ASVs,
+          .data$Seq,
           .data$AccID
         ) %>%
         dplyr::distinct(.data$AccID,
@@ -575,7 +586,7 @@ txm_ecosrc <- function(hit_tbl,
         ) %>%
         tidyr::nest() %>%
         dplyr::left_join(unite,
-          by = "ASVs"
+          by = "Seq"
         ) %>%
         dplyr::mutate(
           score = purrr::pmap(
@@ -593,7 +604,7 @@ txm_ecosrc <- function(hit_tbl,
         dplyr::select(-unite) %>%
         tidyr::unnest(cols = -c(
           ID,
-          ASVs,
+          Seq,
           AccID
         )) %>%
         dplyr::arrange(

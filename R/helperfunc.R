@@ -100,7 +100,7 @@ check_align <- function(db_name,
     }
   }
 
-  if (run_blst &
+  if (run_blst &&
     file.exists(
       here::here(
         tab_path,
@@ -259,7 +259,10 @@ check_align <- function(db_name,
       if (file.exists(
         here::here(
           tab_path,
-          "Silva_annot.fst"
+          paste0(
+            tab_out,
+            "_silva_annot.fst"
+          )
         )
       )) {
         owrt_silva <- utils::askYesNo(
@@ -278,7 +281,10 @@ check_align <- function(db_name,
       if (file.exists(
         here::here(
           tab_path,
-          "RDP_annot.fst"
+          paste0(
+            tab_out,
+            "_rdp_annot.fst"
+          )
         )
       )) {
         owrt_RDP <- utils::askYesNo(
@@ -310,7 +316,10 @@ check_align <- function(db_name,
       if (file.exists(
         here::here(
           tab_path,
-          "UNITE_annot.fst"
+          paste0(
+            tab_out,
+            "_UNITE_annot.fst"
+          )
         )
       )) {
         owrt_unite <- utils::askYesNo(
@@ -334,6 +343,7 @@ check_ecosrc <- function(hit_tbl,
                          filt_site,
                          filt_negt,
                          alt_tbl_path,
+                         alt_tbl_name,
                          org,
                          add_scrs,
                          asbd_tbl,
@@ -372,8 +382,8 @@ check_ecosrc <- function(hit_tbl,
 
     if (org == "bac") {
       to_find <- list(
-        "Silva_annot.fst",
-        "RDP_annot.fst"
+        paste0(alt_tbl_name, "_silva_annot.fst"),
+        paste0(alt_tbl_name, "_rdp_annot.fst")
       ) %>%
         purrr::map(.f = function(x) {
           check <- stringr::str_subset(list_tbls, x) %>%
@@ -386,7 +396,10 @@ check_ecosrc <- function(hit_tbl,
 
     if (org == "fungi") {
       to_find <- list(
-        "UNITE_annot.fst"
+        paste0(
+          alt_tbl_name,
+          "_UNITE_annot.fst"
+        )
       ) %>%
         purrr::map(.f = function(x) {
           check <- stringr::str_subset(list_tbls, x) %>%
@@ -454,19 +467,32 @@ check_lineage <- function(taxids,
 
 
 # txm_align miscellaneous functions ----
-batch <- function(obj,
-                  wth_each) {
-  ct_pcs <- round(nrow(obj) / wth_each)
-  if (ct_pcs < 1) ct_pcs <- 1
+mk_splts <- function(obj,
+                     wth_each,
+                     tab) {
+  out_path <- here::here(
+    temp,
+    tab
+  )
 
-  out <- obj %>%
-    dplyr::mutate(batch = rep(1:ct_pcs,
-      each = ct_pcs,
-      length.out = nrow(.)
-    )) %>%
-    dplyr::group_by(.data$batch) %>%
-    tidyr::nest() %>%
-    dplyr::pull()
+  base::system2(
+    command = "seqkit",
+    args = paste(
+      "split",
+      "-p",
+      wth_each,
+      "-O",
+      out_path,
+      obj
+    ),
+    wait = TRUE
+  )
+
+  splits <- list.files(
+    out_path,
+    full.names = TRUE
+  ) %>%
+    as.list()
 }
 
 mk_fasta <- function(x) {
@@ -483,16 +509,16 @@ mk_fasta <- function(x) {
     base::unlist()
 }
 
-trmnl_cmd <- function(task,
-                      db_path,
-                      db_name,
-                      tab_path,
-                      threads,
-                      pctidt,
-                      acsn_path,
-                      acsn_list,
-                      max_out,
-                      run_prl) {
+sys_cmd <- function(task,
+                    db_path,
+                    db_name,
+                    tab_path,
+                    threads,
+                    pctidt,
+                    acsn_path,
+                    acsn_list,
+                    max_out,
+                    run_prl) {
   prl <- paste(
     "ls",
     here::here(
@@ -566,35 +592,10 @@ trmnl_cmd <- function(task,
     out_fmt,
     sep = " "
   )
+
+  base::system(cmd, wait = TRUE)
 }
 
-
-trmnl_run <- function(x) {
-  blst <- rstudioapi::terminalExecute(x,
-    show = F
-  )
-}
-
-
-trmnl_exit <- function(x) {
-  while (
-    is.null(
-      rstudioapi::terminalExitCode(x)
-    )) {
-    Sys.sleep(0.1)
-  }
-
-  if (!rstudioapi::terminalExitCode(x) == 0) {
-    stop(print(
-      paste(
-        "Blast ran into an error - Code: ",
-        rstudioapi::terminalExitCode(x),
-        " - Please check terminal for details"
-      )
-    ))
-  }
-  rstudioapi::terminalKill(x)
-}
 
 check_files <- function(x) {
   if (file.size(x) == 0) {
@@ -603,78 +604,59 @@ check_files <- function(x) {
 }
 
 
-blast_run <- function(seq,
-                      task,
-                      db_path,
-                      db_name,
-                      tab_path,
-                      tab_out,
-                      threads,
-                      pctidt,
-                      acsn_path,
-                      acsn_list,
-                      max_out,
-                      chunks) {
-  temp <- here::here(
+algn_blast <- function(seq,
+                       task,
+                       db_path,
+                       db_name,
+                       tab_path,
+                       tab_out,
+                       threads,
+                       pctidt,
+                       acsn_path,
+                       acsn_list,
+                       max_out,
+                       chunks) {
+  mk_chunks <- seq %>%
+    mk_splts(.,
+      wth_each = chunks,
+      "chunk"
+    )
+
+  chnk_path <- here::here(
     tab_path,
-    "temp"
+    "temp",
+    "chunk"
   )
-
-  if (!dir.exists(temp)) {
-    dir.create(temp,
-      recursive = TRUE
-    )
-  }
-
-  FASTA_file <- seq %>%
-    base::data.frame() %>%
-    batch(chunks) %>%
-    purrr::map(~ mk_fasta(.x)) %>%
-    purrr::imap(
-      ~ readr::write_lines(
-        .x,
-        file = paste(
-          here::here(
-            temp,
-            "FA_splt"
-          ),
-          .y,
-          ".fa",
-          sep = ""
-        )
-      )
-    )
 
   prgrs_bar$tick(len = -1)
   prgrs_bar$tick()
 
   fsts <- list.files(
-    path = temp,
-    pattern = "FA_splt.*fa",
+    path = chnk_path,
+    pattern = "*.fa",
     full.names = T
   ) %>%
     as.list() %>%
     purrr::iwalk(~ check_files(.x))
 
-  run <- trmnl_cmd(
+  run <- sys_cmd(
     task = task,
     db_path = db_path,
     db_name = db_name,
-    tab_path = temp,
+    tab_path = chnk_path,
     threads = threads,
     pctidt = pctidt,
     acsn_path = acsn_path,
     acsn_list = acsn_list,
     max_out = max_out
-  ) %>%
-    trmnl_run() %>%
-    trmnl_exit()
+  )
+
   prgrs_bar$tick()
 
-  concat <- rstudioapi::terminalExecute(
+  concat <- base::system(
     paste(
       "cat ",
-      temp,
+      chnk_path,
       "/*.tsv >> ",
       here::here(
         tab_path,
@@ -685,14 +667,11 @@ blast_run <- function(seq,
       ),
       ".tsv",
       sep = ""
-    ),
-    show = F
+    )
   )
 
-  trmnl_exit(concat)
-
-  unlink(temp,
-    recursive = T
+  unlink(chnk_path,
+    recursive = TRUE
   )
 }
 
