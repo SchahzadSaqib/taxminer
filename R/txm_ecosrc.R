@@ -573,6 +573,7 @@ txm_ecosrc <- function(hit_tbl,
           )
         )
       ) %>%
+        dplyr::rename("Seq" = ASVs) %>% 
         dplyr::group_by(Seq) %>%
         tidyr::nest(unite = !Seq)
 
