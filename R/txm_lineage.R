@@ -102,83 +102,89 @@ txm_lineage <- function(taxids,
     get <- taxids_src %>%
       purrr::lmap(~ get_lge(.x))
 
-    clean <- get %>%
+    pre <- get %>%
       purrr::flatten() %>%
-      purrr::map_dfr(.f = dplyr::bind_cols) %>%
-      dplyr::bind_rows(lge[setdiff(names(lge), names(.))]) %>%
-      dplyr::select(TaxID, names(lge), everything()) %>%
-      dplyr::rowwise() %>%
-      dplyr::mutate(
-        norank.1 = ifelse(
-          "norank.1" %in% names(.),
-          norank.1,
-          NA
-        ),
-        across(
-        .cols = tidyr::everything(), 
-        .fns = ~ lge_cln(.x)
-      ), 
-      norank.1 = ifelse(is.na(norank.1),
-          .data$species,
-          norank.1
+      purrr::map_dfr(.f = dplyr::bind_cols)
+
+    if (nrow(pre) > 0) {
+      clean <- pre %>%
+        dplyr::bind_rows(lge[setdiff(names(lge), names(.))]) %>%
+        dplyr::select(TaxID, names(lge), everything()) %>%
+        dplyr::rowwise() %>%
+        dplyr::mutate(
+          norank.1 = ifelse(
+            "norank.1" %in% names(.),
+            norank.1,
+            NA
+          ),
+          across(
+            .cols = tidyr::everything(),
+            .fns = ~ lge_cln(.x)
+          ),
+          norank.1 = ifelse(is.na(norank.1),
+            .data$species,
+            norank.1
+          )
+        ) %>%
+        dplyr::select(-tidyselect::contains("species")) %>%
+        dplyr::rename("species" = norank.1) %>%
+        dplyr::select(tidyselect::all_of(
+          c(
+            "TaxID",
+            names(lge)
+          )
         )) %>%
-      dplyr::select(-tidyselect::contains("species")) %>%
-      dplyr::rename("species" = norank.1) %>%
-      dplyr::select(tidyselect::all_of(
-        c(
-          "TaxID",
-          names(lge)
-        )
-      )) %>% 
-      data.frame()
+        data.frame()
 
-    rearrange <- clean %>%
-      tidyr::pivot_longer(-c(TaxID, species),
-                          names_to = "level",
-                          values_to = "names"
-      ) %>%
-      dplyr::group_by(TaxID, species) %>%
-      dplyr::mutate(
-        species = ifelse(is.na(species),
-                         paste(
-                           "unclassified",
-                           dplyr::nth(rev(stats::na.omit(names)), 1)
-                         ),
-                         species
-        ),
-        names = ifelse(is.na(names),
-                       paste(
-                         "unclassified",
-                         dplyr::nth(rev(stats::na.omit(names)), 1)
-                       ),
-                       names
-        )
-      ) %>%
-      tidyr::pivot_wider(
-        id_cols = c(TaxID, species),
-        names_from = .data$level,
-        values_from = .data$names
-      ) %>%
-      dplyr::relocate(species, .after = genus)
-      
+      rearrange <- clean %>%
+        tidyr::pivot_longer(-c(TaxID, species),
+          names_to = "level",
+          values_to = "names"
+        ) %>%
+        dplyr::group_by(TaxID, species) %>%
+        dplyr::mutate(
+          species = ifelse(is.na(species),
+            paste(
+              "unclassified",
+              dplyr::nth(rev(stats::na.omit(names)), 1)
+            ),
+            species
+          ),
+          names = ifelse(is.na(names),
+            paste(
+              "unclassified",
+              dplyr::nth(rev(stats::na.omit(names)), 1)
+            ),
+            names
+          )
+        ) %>%
+        tidyr::pivot_wider(
+          id_cols = c(TaxID, species),
+          names_from = .data$level,
+          values_from = .data$names
+        ) %>%
+        dplyr::relocate(species, .after = genus)
 
-    lineage <- rearrange %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
-      as.data.frame() %>%
-      dplyr::mutate(
-        dplyr::across(
-          .cols = -TaxID,
-          ~ as.character(.x)
-        )
-      ) %>%
-      dplyr::mutate(
-        species = stringr::str_remove_all(
-          species,
-          "'"
-        )
-      )
 
+      lineage <- rearrange %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate(TaxID = as.numeric(TaxID)) %>%
+        as.data.frame() %>%
+        dplyr::mutate(
+          dplyr::across(
+            .cols = -TaxID,
+            ~ as.character(.x)
+          )
+        ) %>%
+        dplyr::mutate(
+          species = stringr::str_remove_all(
+            species,
+            "'"
+          )
+        )
+    } else {
+      lineage <- NULL
+    }
 
     ## save -----
     if (!is.null(lineage)) {
