@@ -32,9 +32,10 @@ Word_banks <- list(
   ),
   gut = c(
     "gut", "GI tract", "gastrointestinal", "intestine", "intestinal",
-    "urinary tract", "urine", "bowel", "abdomen", "abdominal",
-    "stomach", "feces", "faeces", "stool", "fecal", "colon", "ileum"
+    "bowel", "abdomen", "abdominal", "stomach", "feces", "faeces", 
+    "stool", "fecal", "colon", "ileum"
   ),
+  ut = c("urine", "urinary tract", "urinary", "bladder", "sphincter"),
   skin = c(
     "skin", "scalp", "head", "neck", "dermatitis", "eczema",
     "epidermis", "topical"

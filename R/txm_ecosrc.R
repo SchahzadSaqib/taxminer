@@ -502,7 +502,6 @@ txm_ecosrc <- function(hit_tbl,
           )
         )
       ) %>%
-        dplyr::rename("Seq" = ASVs) %>% 
         dplyr::group_by(Seq) %>%
         tidyr::nest(silva = !Seq)
 
@@ -515,7 +514,6 @@ txm_ecosrc <- function(hit_tbl,
           )
         )
       ) %>%
-        dplyr::rename("Seq" = ASVs) %>% 
         dplyr::group_by(Seq) %>%
         tidyr::nest(RDP = !Seq)
 
@@ -573,7 +571,6 @@ txm_ecosrc <- function(hit_tbl,
           )
         )
       ) %>%
-        dplyr::rename("Seq" = ASVs) %>% 
         dplyr::group_by(Seq) %>%
         tidyr::nest(unite = !Seq)
 
