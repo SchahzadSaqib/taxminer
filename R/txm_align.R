@@ -148,74 +148,15 @@ txm_align <- function(seq_in,
 
   if (run_blst && owrt) {
 
-    # BLAST prep and run ----
-    temp <- here::here(
-      tab_path,
-      "temp"
-    )
-
-    assign("temp", temp, envir = .GlobalEnv)
-
-    if (!dir.exists(temp)) {
-      dir.create(temp,
-        recursive = TRUE
-      )
-    }
-
-    if (is.character(seq_in) && file.exists(seq_in)) {
-      seq_obj <- seq_in
-    } else {
-      fa <- seq_in %>%
-        base::colnames() %>%
-        base::data.frame() %>%
-        base::data.frame() %>%
-        purrr::set_names("Seq") %>%
-        dplyr::mutate(ID = paste0("seq_1.", 1:nrow(.))) %>%
-        dplyr::select(
-          .data$ID,
-          .data$Seq
-        ) %>%
-        mk_fasta() %>%
-        readr::write_lines(
-          file = here::here(
-            temp,
-            "to_align.fa"
-          )
-        )
-
-      seq_obj <- list.files(
-        path = temp,
-        pattern = "*.fa",
-        full.names = TRUE
-      )
-    }
-
-    index <- system2(
-      command = "seqkit",
-      args = paste0(
-        "fx2tab ",
-        seq_obj,
-        " -i > ",
-        here::here(
-          tab_path,
-          paste0(
-            "Index_",
-            tab_out,
-            ".txt"
-          )
-        )
-      )
-    )
-
-    seq_splt <- mk_splts(
-      seq_obj,
-      batches,
-      "batch"
-    )
+   seq_splt <- splt_sqcs(seq = seq_in, 
+              pth = tab_path, 
+              bch = batches, 
+              out = tab_out)
+    
 
     prgrs_bar <- new_bar(
       length(seq_splt),
-      "aligning"
+      "BLAST alignment"
     )
 
     assign("prgrs_bar",
@@ -247,37 +188,41 @@ txm_align <- function(seq_in,
 
   # Alternative annotations (Silva + RDP + UNITE) ----
   if (alt_annot) {
+    
+   seq_splt <- splt_sqcs(seq = seq_in, 
+              pth = tab_path, 
+              bch = batches, 
+              out = tab_out, 
+              index = FALSE)
+    
     list_dbs <- list.files(alt_path)
     set.seed(10)
 
     if (org == "bac") {
       if (owrt_silva) {
-        print("assigning taxonomies from silva")
-        annot_silva_sp <- dada2::assignTaxonomy(
-          seq_in,
-          here::here(
-            alt_path,
-            stringr::str_subset(
-              list_dbs,
-              "silva.*train"
-            )
-          ),
-          minBoot = 80,
-          multithread = T,
-          tryRC = T
-        ) %>%
-          dada2::addSpecies(
-            here::here(
-              alt_path,
-              stringr::str_subset(
-                list_dbs,
-                "silva.*species"
-              )
-            ),
-            allowMultiple = T,
-            tryRC = T
-          ) %>%
-          base::data.frame() %>%
+        
+        prgrs_bar <- new_bar(
+          length(seq_splt),
+          "silva alignment"
+        )
+        
+        assign("prgrs_bar",
+               prgrs_bar,
+               envir = .GlobalEnv
+        )
+        
+        annot_silva_sp <- seq_splt %>% 
+          purrr::map(~ alt_taxa(
+            seq = .x, 
+            db = list_dbs, 
+            db_tr = "silva.*train", 
+            db_sp = "silva.*species", 
+            pth = alt_path, 
+            org = org
+          ))
+        
+        annot_silva_cln <- annot_silva_sp %>% 
+          dplyr::bind_rows() %>% 
           tibble::rownames_to_column(
             var = "Seq"
           ) %>%
@@ -304,7 +249,7 @@ txm_align <- function(seq_in,
             )
           )
 
-        fst::write_fst(annot_silva_sp,
+        fst::write_fst(annot_silva_cln,
           path = here::here(
             tab_path,
             paste0(
@@ -316,32 +261,29 @@ txm_align <- function(seq_in,
       }
 
       if (owrt_RDP) {
-        print("assigning taxonomies from rdp")
-        annot_rdp_sp <- dada2::assignTaxonomy(
-          seq_in,
-          here::here(
-            alt_path,
-            stringr::str_subset(
-              list_dbs,
-              "rdp.*train"
-            )
-          ),
-          minBoot = 80,
-          multithread = T,
-          tryRC = T
-        ) %>%
-          dada2::addSpecies(
-            here::here(
-              alt_path,
-              stringr::str_subset(
-                list_dbs,
-                "rdp.*species"
-              )
-            ),
-            allowMultiple = T,
-            tryRC = T
-          ) %>%
-          base::data.frame() %>%
+        
+        prgrs_bar <- new_bar(
+          length(seq_splt),
+          "RDP alignment"
+        )
+        
+        assign("prgrs_bar",
+               prgrs_bar,
+               envir = .GlobalEnv
+        )
+        
+        annot_rdp_sp <- seq_splt %>% 
+          purrr::map(~ alt_taxa(
+            seq = .x, 
+            db = list_dbs, 
+            db_tr = "rdp.*train", 
+            db_sp = "rdp.*species", 
+            pth = alt_path, 
+            org = org
+          ))
+        
+        annot_rdp_cln <- annot_rdp_sp %>% 
+          dplyr::bind_rows() %>% 
           tibble::rownames_to_column(
             var = "Seq"
           ) %>%
@@ -362,7 +304,7 @@ txm_align <- function(seq_in,
             )
           )
 
-        fst::write_fst(annot_rdp_sp,
+        fst::write_fst(annot_rdp_cln,
           path = here::here(
             tab_path,
             paste0(
@@ -376,21 +318,28 @@ txm_align <- function(seq_in,
 
     if (org == "fungi") {
       if (owrt_unite) {
-        print("assigning taxonomies from UNITE")
-        annot_unite <- dada2::assignTaxonomy(
-          seq_in,
-          here::here(
-            alt_path,
-            stringr::str_subset(
-              list_dbs,
-              "sh_general.*fasta"
-            )
-          ),
-          minBoot = 80,
-          multithread = T,
-          tryRC = T
-        ) %>%
-          base::data.frame() %>%
+        
+        prgrs_bar <- new_bar(
+          length(seq_splt),
+          "UNITE alignment"
+        )
+        
+        assign("prgrs_bar",
+               prgrs_bar,
+               envir = .GlobalEnv
+        )
+        
+        annot_unt_sp <- seq_splt %>% 
+          purrr::map(~ alt_taxa(
+            seq = .x, 
+            db = list_dbs, 
+            db_tr = "sh_general.*fasta",  
+            pth = alt_path, 
+            org = org
+          ))
+        
+        annot_unt_cln <- annot_unt_sp %>% 
+          dplyr::bind_rows() %>% 
           dplyr::rename_with(tolower) %>%
           dplyr::mutate(kingdom = "Eukaryota") %>%
           tibble::rownames_to_column(
@@ -422,7 +371,7 @@ txm_align <- function(seq_in,
             )
           )
 
-        fst::write_fst(annot_unite,
+        fst::write_fst(annot_unt_cln,
           path = here::here(
             tab_path,
             paste0(
@@ -440,6 +389,10 @@ txm_align <- function(seq_in,
         "owrt"
       ),
       envir = .GlobalEnv
+    )
+    
+    base::unlink(temp,
+                 recursive = TRUE
     )
   }
 

@@ -32,7 +32,7 @@ Word_banks <- list(
   ),
   gut = c(
     "gut", "GI tract", "gastrointestinal", "intestine", "intestinal",
-    "bowel", "abdomen", "abdominal", "stomach", "feces", "faeces", 
+    "bowel", "abdomen", "abdominal", "stomach", "feces", "faeces",
     "stool", "fecal", "colon", "ileum"
   ),
   ut = c("urine", "urinary tract", "urinary", "bladder", "sphincter"),
@@ -510,6 +510,78 @@ mk_fasta <- function(x) {
     base::unlist()
 }
 
+splt_sqcs <- function(seq,
+                      pth,
+                      bch,
+                      out,
+                      index = TRUE) {
+  temp <- here::here(
+    pth,
+    "temp"
+  )
+
+  assign("temp", temp, envir = .GlobalEnv)
+
+  if (!dir.exists(temp)) {
+    dir.create(temp,
+      recursive = TRUE
+    )
+  }
+
+  if (is.character(seq) && file.exists(seq)) {
+    seq_obj <- seq
+  } else {
+    fa <- seq %>%
+      base::colnames() %>%
+      base::data.frame() %>%
+      purrr::set_names("Seq") %>%
+      dplyr::mutate(ID = paste0("seq_1.", 1:nrow(.))) %>%
+      dplyr::select(
+        .data$ID,
+        .data$Seq
+      ) %>%
+      mk_fasta() %>%
+      readr::write_lines(
+        file = here::here(
+          temp,
+          "to_align.fa"
+        )
+      )
+
+    seq_obj <- list.files(
+      path = temp,
+      pattern = "*.fa",
+      full.names = TRUE
+    )
+  }
+
+  if (index) {
+    index <- system2(
+      command = "seqkit",
+      args = paste0(
+        "fx2tab ",
+        seq_obj,
+        " -i > ",
+        here::here(
+          pth,
+          paste0(
+            "Index_",
+            out,
+            ".txt"
+          )
+        )
+      )
+    )
+  }
+
+  seq_splt <- mk_splts(
+    seq_obj,
+    bch,
+    "batch"
+  )
+}
+
+
 sys_cmd <- function(task,
                     db_path,
                     db_name,
@@ -675,6 +747,52 @@ algn_blast <- function(seq,
     recursive = TRUE
   )
 }
+
+alt_taxa <- function(seq,
+                     db,
+                     db_tr,
+                     db_sp = NA,
+                     pth,
+                     org) {
+  prgrs_bar$tick(len = -1)
+  prgrs_bar$tick()
+
+  annot <- dada2::assignTaxonomy(
+    seq,
+    here::here(
+      pth,
+      stringr::str_subset(
+        db,
+        db_tr
+      )
+    ),
+    minBoot = 80,
+    multithread = T,
+    tryRC = T
+  )
+
+  if (!org == "fungi") {
+    annot <- annot %>%
+      dada2::addSpecies(
+        here::here(
+          pth,
+          stringr::str_subset(
+            db,
+            db_sp
+          )
+        ),
+        allowMultiple = T,
+        tryRC = T
+      ) %>%
+      base::data.frame()
+  }
+
+  prgrs_bar$tick()
+
+  annot
+}
+
+
 
 # Only needed until Fannyhessea vaginae is updated in silva and RDP databases
 FHV <- data.frame(
