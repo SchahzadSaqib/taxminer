@@ -785,6 +785,9 @@ alt_taxa <- function(seq,
         tryRC = T
       ) %>%
       base::data.frame()
+  } else {
+    annot <- annot %>% 
+      data.frame()
   }
 
   prgrs_bar$tick()
