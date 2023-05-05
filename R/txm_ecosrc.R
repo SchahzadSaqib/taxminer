@@ -224,7 +224,7 @@ txm_ecosrc <- function(hit_tbl,
         .x,
         sys.break
       )) %>%
-      purrr::append(to_rm, after = 0) %>%
+      base::append(to_rm, after = 0) %>%
       dplyr::bind_rows()
 
     if (nrow(pmids) > 0) {
