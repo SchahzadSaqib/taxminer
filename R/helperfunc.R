@@ -537,8 +537,8 @@ splt_sqcs <- function(seq,
       purrr::set_names("Seq") %>%
       dplyr::mutate(ID = paste0("seq_1.", 1:nrow(.))) %>%
       dplyr::select(
-        .data$ID,
-        .data$Seq
+        ID,
+        Seq
       ) %>%
       mk_fasta() %>%
       readr::write_lines(
@@ -1542,8 +1542,8 @@ site_kp <- function(x, y) {
 concat <- function(x) {
   clean <- x %>%
     dplyr::select(
-      .data$SubType,
-      .data$SubName
+      SubType,
+      SubName
     ) %>%
     as.list() %>%
     purrr::map(
@@ -1619,12 +1619,22 @@ hm_wbk <- purrr::map(
   purrr::set_names("human")
 
 meta_extr <- function(x) {
+  
+  fct2chr <- function(x) {
+    if (is.factor(x)) {
+      x <- as.character(x)
+    } else {
+      x
+    }
+  }
+  
   df_extrt <- x %>%
     dtplyr::lazy_dt() %>%
     dplyr::mutate(
       dplyr::across(
-        .cols = tidyselect::vars_select_helpers$where(is.factor),
-        .fns = ~ as.character(.x)
+        .cols = everything(),
+        ## "where" function breaks inside dtplyr. 
+        .fns = ~ fct(.x)
       )
     ) %>%
     dplyr::ungroup() %>%

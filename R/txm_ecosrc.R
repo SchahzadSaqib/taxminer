@@ -174,8 +174,8 @@ txm_ecosrc <- function(hit_tbl,
         )) %>%
         dplyr::mutate(meta = concat(.)) %>%
         dplyr::select(-c(
-          .data$SubType,
-          .data$SubName
+          SubType,
+          SubName
         )) %>%
         dplyr::mutate(chunks = rep(0:nrow(.),
           each = 100000,
@@ -224,7 +224,7 @@ txm_ecosrc <- function(hit_tbl,
         .x,
         sys.break
       )) %>%
-      purrr::prepend(to_rm) %>%
+      purrr::append(to_rm, after = 0) %>%
       dplyr::bind_rows()
 
     if (nrow(pmids) > 0) {
@@ -242,7 +242,7 @@ txm_ecosrc <- function(hit_tbl,
     # PubMed data retrieval ----
     if (nrow(pmids) > 0) {
       pmids_src <- pmids %>%
-        dplyr::select(.data$PMID) %>%
+        dplyr::select(PMID) %>%
         tidyr::drop_na() %>%
         dplyr::distinct()
 
@@ -330,7 +330,7 @@ txm_ecosrc <- function(hit_tbl,
   df_summ <- df_summ %>%
     {
       if ("TaxID" %in% names(hit_tbl)) {
-        dplyr::select(., -.data$TaxId)
+        dplyr::select(., -TaxId)
       } else {
         dplyr::rename(., "TaxID" = .data$TaxId)
       }
@@ -338,8 +338,8 @@ txm_ecosrc <- function(hit_tbl,
     dplyr::inner_join(hit_tbl) %>%
     dplyr::arrange(.data$ID) %>%
     dplyr::select(
-      .data$ID,
-      .data$AccID,
+      ID,
+      AccID,
       tidyselect::everything()
     )
 
@@ -379,9 +379,9 @@ txm_ecosrc <- function(hit_tbl,
     df_filt <- df_summ %>%
       tidyr::unite("pooled_data",
         c(
-          .data$Mesh,
-          .data$Article,
-          .data$meta
+          Mesh,
+          Article,
+          meta
         ),
         na.rm = T
       )
