@@ -1175,18 +1175,21 @@ get_esumm <- function(accID,
       retmode = "xml"
     )
 
+    to_sub <- c(
+      "AccessionVersion",
+      "Strain",
+      "Title",
+      "TaxId",
+      "SubType",
+      "SubName"
+    )
+    
     ids_extr <- t(rentrez::extract_from_esummary(
       ids_summ,
-      elements = c(
-        "AccessionVersion",
-        "Strain",
-        "Title",
-        "TaxId",
-        "SubType",
-        "SubName"
-      )
+      elements = c(to_sub)
     )) %>%
       base::as.data.frame() %>%
+      purrr::set_names(c(to_sub)) %>% 
       dplyr::mutate(
         dplyr::across(
           tidyselect::vars_select_helpers$where(is.list),
