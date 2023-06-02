@@ -1369,7 +1369,7 @@ get_pbdt <- function(pmid,
           .at = "MeshHeadingList",
           .f = function(x) {
             x <- x %>%
-              purrr::flatten() %>%
+              base::unlist() %>%
               purrr::reduce(paste)
           }
         )
