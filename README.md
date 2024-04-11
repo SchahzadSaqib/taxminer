@@ -20,6 +20,10 @@ The latest version of taxminer can be installed as follows:
 devtools::install_github("SchahzadSaqib/taxminer")
 ```
 
+## Tutorial
+
+Coming soon. In the meantime, please free to contact me here: schahzad.saqib@helsinki.fi or schahzad.saqib@hus.fi. 
+
 ## References
 
 -   rentrez - Winter DJ (2017). “rentrez: an R package for the NCBI
