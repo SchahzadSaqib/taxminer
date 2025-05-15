@@ -85,7 +85,7 @@ txm_lineage <- function(taxids,
     )
 
     lge <- c(
-      "superkingdom",
+      "domain",
       "phylum",
       "class",
       "order",
