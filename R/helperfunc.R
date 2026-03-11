@@ -977,7 +977,7 @@ lge_cln <- function(x) {
 annot_score <- function(x, y, z, org) {
   x_lin <- purrr::flatten(x) %>%
     purrr::keep(names(.) %in% c(
-      "superkingdom",
+      "domain",
       "phylum",
       "class",
       "order",
